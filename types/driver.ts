@@ -11,4 +11,5 @@ export interface Driver {
   status: DriverStatus
   docStatus: DocStatus
   rating: number
+  supabaseId?: string
 }

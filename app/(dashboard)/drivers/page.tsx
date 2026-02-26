@@ -1,5 +1,12 @@
-import DriverManagementSection from "@/containers/driver-management"
+import { fetchDrivers } from "@/lib/supabase/queries"
+import { DriverManagementPage } from "@/containers/driver-management/DriverManagementPage"
 
-export default function DriversPage() {
-  return <DriverManagementSection />
+export default async function DriversPage() {
+  let drivers = []
+  try {
+    drivers = await fetchDrivers()
+  } catch {
+    // Fall through with empty list — page handles it gracefully
+  }
+  return <DriverManagementPage initialDrivers={drivers} />
 }

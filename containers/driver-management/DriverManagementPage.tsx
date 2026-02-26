@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { MOCK_DRIVERS } from "@/lib/drivers-mock"
+import type { Driver } from "@/types/driver"
 import { AddDriverModal } from "./AddDriverModal"
 import { DriverPageHeader } from "./DriverPageHeader"
 import { DriverFilters } from "./DriverFilters"
@@ -10,7 +10,7 @@ import { DriverTablePagination } from "./DriverTablePagination"
 
 const PAGE_SIZE = 5
 
-export function DriverManagementPage() {
+export function DriverManagementPage({ initialDrivers = [] }: { initialDrivers?: Driver[] }) {
   const [search, setSearch] = useState("")
   const [city, setCity] = useState("all")
   const [status, setStatus] = useState("all")
@@ -20,7 +20,7 @@ export function DriverManagementPage() {
   const [addModalOpen, setAddModalOpen] = useState(false)
 
   const filteredDrivers = useMemo(() => {
-    return MOCK_DRIVERS.filter((d) => {
+    return initialDrivers.filter((d) => {
       const matchSearch =
         !search ||
         d.name.toLowerCase().includes(search.toLowerCase()) ||
