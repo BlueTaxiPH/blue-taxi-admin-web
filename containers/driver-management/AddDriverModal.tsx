@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
-import { FileText, CreditCard } from "lucide-react"
+import { useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -19,33 +18,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { cn } from "@/lib/utils"
+import { createDriver } from "@/app/actions/create-driver"
 
-const CITIES = ["New York", "London", "San Francisco"] as const
-const SERVICE_TYPES = ["Standard", "Premium", "Van"] as const
+/** DB vehicle_type enum: basic | xl */
+const SERVICE_TYPE_OPTIONS = [
+  { value: "basic", label: "Basic" },
+  { value: "xl", label: "XL" },
+] as const
 
 export interface AddDriverFormData {
   fullName: string
   phone: string
   email: string
-  operatingCity: string
   plateNumber: string
+  vehicleMake: string
   vehicleModel: string
-  serviceType: string
-  licenseFile: File | null
-  nationalIdFile: File | null
+  vehicleYear: string
+  vehicleColor: string
+  serviceType: "basic" | "xl"
 }
 
 const defaultForm: AddDriverFormData = {
   fullName: "",
   phone: "",
   email: "",
-  operatingCity: "",
   plateNumber: "",
+  vehicleMake: "",
   vehicleModel: "",
-  serviceType: "",
-  licenseFile: null,
-  nationalIdFile: null,
+  vehicleYear: "",
+  vehicleColor: "",
+  serviceType: "basic",
 }
 
 interface AddDriverModalProps {
@@ -54,29 +56,92 @@ interface AddDriverModalProps {
   onSuccess?: (data: AddDriverFormData) => void
 }
 
+function hasAnyVehicleField(form: AddDriverFormData): boolean {
+  return !!(
+    form.plateNumber?.trim() ||
+    form.vehicleMake?.trim() ||
+    form.vehicleModel?.trim() ||
+    form.vehicleYear?.trim() ||
+    form.vehicleColor?.trim()
+  )
+}
+
+function hasFullVehicle(form: AddDriverFormData): boolean {
+  const year = form.vehicleYear?.trim() ? parseInt(form.vehicleYear, 10) : NaN
+  return !!(
+    form.plateNumber?.trim() &&
+    form.vehicleMake?.trim() &&
+    form.vehicleModel?.trim() &&
+    Number.isFinite(year) &&
+    year >= 1990 &&
+    year <= 2030 &&
+    form.vehicleColor?.trim()
+  )
+}
+
 export function AddDriverModal({
   open,
   onOpenChange,
   onSuccess,
 }: AddDriverModalProps) {
   const [form, setForm] = useState<AddDriverFormData>(defaultForm)
-  const licenseInputRef = useRef<HTMLInputElement>(null)
-  const nationalIdInputRef = useRef<HTMLInputElement>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [serverError, setServerError] = useState<string | null>(null)
 
-  function update(field: keyof AddDriverFormData, value: string | File | null) {
+  function update(
+    field: keyof AddDriverFormData,
+    value: string | "basic" | "xl"
+  ) {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
-  function handleOpenChange(open: boolean) {
-    if (!open) setForm(defaultForm)
-    onOpenChange(open)
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      setForm(defaultForm)
+      setServerError(null)
+    }
+    onOpenChange(nextOpen)
   }
 
-  function handleSubmit() {
-    if (!form.fullName.trim()) return
-    onSuccess?.(form)
-    setForm(defaultForm)
-    onOpenChange(false)
+  async function handleSubmit() {
+    if (!form.fullName.trim() || !form.email.trim() || !form.phone.trim()) {
+      setServerError("Full name, email, and phone are required.")
+      return
+    }
+
+    if (hasAnyVehicleField(form) && !hasFullVehicle(form)) {
+      setServerError(
+        "To add a vehicle, please fill Plate Number, Make, Model, Year (1990–2030), and Color."
+      )
+      return
+    }
+
+    setIsSubmitting(true)
+    setServerError(null)
+
+    const result = await createDriver({
+      fullName: form.fullName,
+      email: form.email,
+      phone: form.phone,
+      plateNumber: form.plateNumber?.trim() || undefined,
+      vehicleMake: form.vehicleMake?.trim() || undefined,
+      vehicleModel: form.vehicleModel?.trim() || undefined,
+      vehicleYear: form.vehicleYear?.trim()
+        ? parseInt(form.vehicleYear, 10)
+        : undefined,
+      vehicleColor: form.vehicleColor?.trim() || undefined,
+      serviceType: form.serviceType,
+    })
+
+    setIsSubmitting(false)
+
+    if (result.success) {
+      onSuccess?.(form)
+      setForm(defaultForm)
+      onOpenChange(false)
+    } else {
+      setServerError(result.error)
+    }
   }
 
   return (
@@ -87,75 +152,54 @@ export function AddDriverModal({
         </DialogHeader>
         <div className="no-scrollbar -mx-4 max-h-[60vh] overflow-y-auto px-4">
           <div className="flex flex-col gap-6 py-2">
-          {/* Section 1 – PERSONAL INFORMATION */}
-          <div className="space-y-4">
-            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Personal Information
-            </h3>
-            <div className="grid gap-4">
-              <div>
-                <label className="text-muted-foreground mb-1.5 block text-sm font-medium">
-                  Full Name
-                </label>
-                <Input
-                  placeholder="e.g. John Doe"
-                  value={form.fullName}
-                  onChange={(e) => update("fullName", e.target.value)}
-                />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
+            {/* Section 1 – PERSONAL INFORMATION */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Personal Information
+              </h3>
+              <div className="grid gap-4">
                 <div>
                   <label className="text-muted-foreground mb-1.5 block text-sm font-medium">
-                    Phone Number
+                    Full Name
                   </label>
                   <Input
-                    placeholder="+1 (555) 000-0000"
-                    value={form.phone}
-                    onChange={(e) => update("phone", e.target.value)}
+                    placeholder="e.g. John Doe"
+                    value={form.fullName}
+                    onChange={(e) => update("fullName", e.target.value)}
                   />
                 </div>
-                <div>
-                  <label className="text-muted-foreground mb-1.5 block text-sm font-medium">
-                    Email Address
-                  </label>
-                  <Input
-                    type="email"
-                    placeholder="driver@example.com"
-                    value={form.email}
-                    onChange={(e) => update("email", e.target.value)}
-                  />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="text-muted-foreground mb-1.5 block text-sm font-medium">
+                      Phone Number
+                    </label>
+                    <Input
+                      placeholder="+1 (555) 000-0000"
+                      value={form.phone}
+                      onChange={(e) => update("phone", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-muted-foreground mb-1.5 block text-sm font-medium">
+                      Email Address
+                    </label>
+                    <Input
+                      type="email"
+                      placeholder="driver@example.com"
+                      value={form.email}
+                      onChange={(e) => update("email", e.target.value)}
+                    />
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label className="text-muted-foreground mb-1.5 block text-sm font-medium">
-                  Operating City
-                </label>
-                <Select
-                  value={form.operatingCity || undefined}
-                  onValueChange={(v) => update("operatingCity", v)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a city" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CITIES.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
-          </div>
 
-          {/* Section 2 – VEHICLE DETAILS */}
-          <div className="space-y-4">
-            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Vehicle Details
-            </h3>
-            <div className="grid gap-4">
-              <div className="grid gap-4 sm:grid-cols-2">
+            {/* Section 2 – VEHICLE DETAILS (matches DB: vehicles) */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Vehicle Details
+              </h3>
+              <div className="grid gap-4">
                 <div>
                   <label className="text-muted-foreground mb-1.5 block text-sm font-medium">
                     Plate Number
@@ -166,110 +210,96 @@ export function AddDriverModal({
                     onChange={(e) => update("plateNumber", e.target.value)}
                   />
                 </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="text-muted-foreground mb-1.5 block text-sm font-medium">
+                      Make
+                    </label>
+                    <Input
+                      placeholder="e.g. Toyota"
+                      value={form.vehicleMake}
+                      onChange={(e) => update("vehicleMake", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-muted-foreground mb-1.5 block text-sm font-medium">
+                      Model
+                    </label>
+                    <Input
+                      placeholder="e.g. Vios"
+                      value={form.vehicleModel}
+                      onChange={(e) =>
+                        update("vehicleModel", e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="text-muted-foreground mb-1.5 block text-sm font-medium">
+                      Year
+                    </label>
+                    <Input
+                      type="number"
+                      min={1990}
+                      max={2030}
+                      placeholder="e.g. 2023"
+                      value={form.vehicleYear}
+                      onChange={(e) => update("vehicleYear", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-muted-foreground mb-1.5 block text-sm font-medium">
+                      Color
+                    </label>
+                    <Input
+                      placeholder="e.g. White"
+                      value={form.vehicleColor}
+                      onChange={(e) =>
+                        update("vehicleColor", e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
                 <div>
                   <label className="text-muted-foreground mb-1.5 block text-sm font-medium">
-                    Vehicle Model
+                    Service Type
                   </label>
-                  <Input
-                    placeholder="Toyota Camry 2023"
-                    value={form.vehicleModel}
-                    onChange={(e) => update("vehicleModel", e.target.value)}
-                  />
+                  <Select
+                    value={form.serviceType}
+                    onValueChange={(v: "basic" | "xl") =>
+                      update("serviceType", v)
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select service type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SERVICE_TYPE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              <div>
-                <label className="text-muted-foreground mb-1.5 block text-sm font-medium">
-                  Service Type
-                </label>
-                <Select
-                  value={form.serviceType || undefined}
-                  onValueChange={(v) => update("serviceType", v)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select service type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SERVICE_TYPES.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
-          </div>
-
-          {/* Section 3 – DOCUMENTS */}
-          <div className="space-y-4">
-            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Documents
-            </h3>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <input
-                ref={licenseInputRef}
-                type="file"
-                accept="image/*,.pdf"
-                className="hidden"
-                onChange={(e) =>
-                  update("licenseFile", e.target.files?.[0] ?? null)
-                }
-              />
-              <button
-                type="button"
-                onClick={() => licenseInputRef.current?.click()}
-                className={cn(
-                  "border-border flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed bg-muted/30 p-6 transition-colors hover:bg-muted/50",
-                )}
-              >
-                <FileText className="text-muted-foreground size-10" />
-                <span className="text-muted-foreground text-sm font-medium">
-                  Driver&apos;s License
-                </span>
-                {form.licenseFile && (
-                  <span className="text-muted-foreground truncate text-xs">
-                    {form.licenseFile.name}
-                  </span>
-                )}
-              </button>
-
-              <input
-                ref={nationalIdInputRef}
-                type="file"
-                accept="image/*,.pdf"
-                className="hidden"
-                onChange={(e) =>
-                  update("nationalIdFile", e.target.files?.[0] ?? null)
-                }
-              />
-              <button
-                type="button"
-                onClick={() => nationalIdInputRef.current?.click()}
-                className={cn(
-                  "border-border flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed bg-muted/30 p-6 transition-colors hover:bg-muted/50",
-                )}
-              >
-                <CreditCard className="text-muted-foreground size-10" />
-                <span className="text-muted-foreground text-sm font-medium">
-                  National ID / Passport
-                </span>
-                {form.nationalIdFile && (
-                  <span className="text-muted-foreground truncate text-xs">
-                    {form.nationalIdFile.name}
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
           </div>
         </div>
 
+        {serverError ? (
+          <p className="text-destructive px-1 text-sm">{serverError}</p>
+        ) : null}
+
         <DialogFooter className="gap-4">
           <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
+            <Button variant="outline" disabled={isSubmitting}>
+              Cancel
+            </Button>
           </DialogClose>
-          <Button onClick={handleSubmit}>
-            Create Driver
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? "Creating…" : "Create Driver"}
           </Button>
         </DialogFooter>
       </DialogContent>

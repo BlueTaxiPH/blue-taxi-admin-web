@@ -2,38 +2,35 @@
 
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { approveDriver } from "@/app/actions/approve-driver"
 import { Button } from "@/components/ui/button"
 
 export function ApproveDriverButton({ driverId }: { driverId: string }) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  async function handleApprove() {
+  async function handleVerificationAction(action: "approve" | "reject") {
+    setError(null)
     setIsLoading(true)
-    const supabase = createClient()
-    await supabase.functions.invoke("admin-approve-driver", {
-      body: { driverId, action: "approve" },
-    })
-    router.refresh()
+    const result = await approveDriver(driverId, action)
     setIsLoading(false)
-  }
-
-  async function handleReject() {
-    setIsLoading(true)
-    const supabase = createClient()
-    await supabase.functions.invoke("admin-approve-driver", {
-      body: { driverId, action: "reject" },
-    })
-    router.refresh()
-    setIsLoading(false)
+    if (result.success) {
+      router.refresh()
+    } else {
+      setError(result.error)
+    }
   }
 
   return (
-    <div className="flex gap-2 pt-2">
+    <div className="flex flex-col gap-2 pt-2">
+      {error ? (
+        <p className="text-destructive text-sm">{error}</p>
+      ) : null}
+      <div className="flex gap-2">
       <Button
         size="sm"
-        onClick={handleApprove}
+        onClick={() => handleVerificationAction("approve")}
         disabled={isLoading}
         className="bg-emerald-600 hover:bg-emerald-700 text-white"
       >
@@ -42,11 +39,12 @@ export function ApproveDriverButton({ driverId }: { driverId: string }) {
       <Button
         size="sm"
         variant="destructive"
-        onClick={handleReject}
+        onClick={() => handleVerificationAction("reject")}
         disabled={isLoading}
       >
         Reject
       </Button>
+      </div>
     </div>
   )
 }

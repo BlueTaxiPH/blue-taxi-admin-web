@@ -1,3 +1,4 @@
+import { createAdminClient } from "./admin-client"
 import { createClient } from "./server"
 import type { Driver } from "@/types/driver"
 
@@ -65,6 +66,26 @@ function mapDriverRowToDriver(row: DriverRow): Driver {
 
 export async function fetchDrivers() {
   const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from("driver_profiles")
+    .select(`
+      id, user_id, verification_status, is_online, avg_rating, total_rides, created_at,
+      users(first_name, last_name, phone, email, photo_url),
+      vehicles(make, model, plate_number, type)
+    `)
+    .order("created_at", { ascending: false })
+
+  if (error) throw error
+  return (data ?? []).map((row) => mapDriverRowToDriver(row as DriverRow))
+}
+
+/**
+ * Fetches all drivers using the admin client (bypasses RLS).
+ * Use only on the admin dashboard so the list always shows all drivers.
+ */
+export async function fetchDriversForAdmin() {
+  const supabase = createAdminClient()
 
   const { data, error } = await supabase
     .from("driver_profiles")

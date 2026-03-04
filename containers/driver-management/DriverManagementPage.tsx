@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import type { Driver } from "@/types/driver"
 import { AddDriverModal } from "./AddDriverModal"
@@ -10,7 +11,16 @@ import { DriverTablePagination } from "./DriverTablePagination"
 
 const PAGE_SIZE = 5
 
-export function DriverManagementPage({ initialDrivers = [] }: { initialDrivers?: Driver[] }) {
+interface DriverManagementPageProps {
+  initialDrivers?: Driver[]
+  fetchError?: string | null
+}
+
+export function DriverManagementPage({
+  initialDrivers = [],
+  fetchError = null,
+}: DriverManagementPageProps) {
+  const router = useRouter()
   const [search, setSearch] = useState("")
   const [city, setCity] = useState("all")
   const [status, setStatus] = useState("all")
@@ -31,7 +41,7 @@ export function DriverManagementPage({ initialDrivers = [] }: { initialDrivers?:
       const matchService = service === "all" || d.serviceType === service
       return matchSearch && matchCity && matchStatus && matchService
     })
-  }, [search, city, status, service])
+  }, [initialDrivers, search, city, status, service])
 
   const totalCount = filteredDrivers.length
   const maxPage = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
@@ -47,9 +57,17 @@ export function DriverManagementPage({ initialDrivers = [] }: { initialDrivers?:
       <AddDriverModal
         open={addModalOpen}
         onOpenChange={setAddModalOpen}
-        onSuccess={() => setAddModalOpen(false)}
+        onSuccess={() => {
+          setAddModalOpen(false)
+          router.refresh()
+        }}
       />
     <div className="flex flex-col gap-6 p-6">
+      {fetchError ? (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {fetchError}
+        </div>
+      ) : null}
       <DriverFilters
         search={search}
         city={city}
