@@ -127,7 +127,6 @@ export function PassengerTable({ passengers }: PassengerTableProps) {
               <Button variant="ghost" size="sm" asChild>
                 <Link href={`/passengers/${p.id}`}>
                   <MoreHorizontal className="size-4" />
-                  <span className="ml-1 text-xs">View profile</span>
                 </Link>
               </Button>
             </TableCell>
