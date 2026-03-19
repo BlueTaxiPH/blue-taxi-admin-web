@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -53,7 +54,7 @@ const trips = [
 
 export function PassengerTripHistory() {
   return (
-    <section className="rounded-xl border bg-card p-6 shadow-sm">
+    <section className="flex h-full flex-col rounded-xl border bg-card p-6 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-base font-semibold text-foreground">
@@ -63,13 +64,13 @@ export function PassengerTripHistory() {
             Recent rides and transactions
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <input
+        <div className="flex flex-row items-center gap-2 text-xs">
+          <Input
             type="search"
             placeholder="Search trips..."
-            className="h-8 w-40 rounded-md border border-input bg-background px-2 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+            className="text-xs"
           />
-          <Button variant="outline" size="xs">
+          <Button variant="outline">
             Filter
           </Button>
         </div>
@@ -122,13 +123,16 @@ export function PassengerTripHistory() {
         </Table>
       </div>
 
-      <div className="mt-4 flex flex-col items-start justify-between gap-3 text-xs text-muted-foreground sm:flex-row sm:items-center">
-        <p>Showing 4 of 42 trips</p>
+      
+      <div className="mt-auto flex w-full flex-wrap pt-4 justify-between gap-3 text-xs text-muted-foreground">
+        <div className="flex items-center">
+          <p>Showing 4 of 42 trips</p>
+        </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="xs">
+          <Button variant="outline">
             Prev
           </Button>
-          <Button size="xs">Next</Button>
+          <Button>Next</Button>
         </div>
       </div>
     </section>
