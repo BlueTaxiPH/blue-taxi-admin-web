@@ -1,6 +1,5 @@
 import { Bell, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 
 interface DriverPageHeaderProps {
   onAddDriver?: () => void
@@ -17,7 +16,7 @@ export function DriverPageHeader({ onAddDriver }: DriverPageHeaderProps) {
           Manage fleet drivers, approvals, and performance metrics
         </p>
       </div>
-      <div className="mt-2 flex items-center gap-6 sm:mt-0">
+      <div className="mt-2 flex items-center gap-4 sm:mt-0">
         <Button onClick={onAddDriver} size="default">
           <Plus className="size-4" />
           Add New Driver
