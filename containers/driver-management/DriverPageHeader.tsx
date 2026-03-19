@@ -7,7 +7,7 @@ interface DriverPageHeaderProps {
 
 export function DriverPageHeader({ onAddDriver }: DriverPageHeaderProps) {
   return (
-    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between p-6 border-b shadow-sm mb-4">
+    <div className="sticky top-0 z-10 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between p-6 border-b shadow-sm mb-4">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Driver Management

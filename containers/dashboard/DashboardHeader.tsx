@@ -16,7 +16,7 @@ export function DashboardHeader() {
   }).format(now)
 
   return (
-    <div className="grid items-center gap-4 border-b p-6 shadow-sm md:grid-cols-[1fr_auto_1fr]">
+    <div className="sticky top-0 z-10 grid items-center gap-4 border-b shadow-sm bg-background p-6 md:grid-cols-[1fr_auto_1fr]">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Executive Overview
