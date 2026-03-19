@@ -23,7 +23,7 @@ export function PassengerPageHeader() {
 
   return (
     <>
-      <header className="flex flex-col gap-3 border-b bg-background p-6 sm:flex-row sm:items-center sm:justify-between">
+      <header className="sticky top-0 z-10 flex flex-col gap-3 border-b shadow-sm bg-background p-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <Button

@@ -7,7 +7,7 @@ interface PassengerPageHeaderProps {
 
 export function PassengerPageHeader({ onAddPassenger }: PassengerPageHeaderProps) {
   return (
-    <div className="flex flex-col gap-1 border-b p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+    <div className="sticky top-0 z-10 flex flex-col gap-1 border-b shadow-sm bg-background p-6 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Passenger Management

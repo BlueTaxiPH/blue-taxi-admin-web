@@ -10,7 +10,7 @@ export function SystemSettingsHeader({
   onSaveChanges: () => void
 }) {
   return (
-    <div className="flex flex-col gap-4 border-b shadow-sm bg-background p-6 sm:flex-row sm:items-center sm:justify-between">
+    <div className="sticky top-0 z-10 flex flex-col gap-4 border-b shadow-sm bg-background p-6 sm:flex-row sm:items-center sm:justify-between">
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           System Settings
