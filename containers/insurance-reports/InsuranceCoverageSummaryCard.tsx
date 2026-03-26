@@ -22,7 +22,7 @@ export function InsuranceCoverageSummaryCard() {
           </p>
         </div>
 
-        <div className="rounded-full bg-primary/10 p-4 text-primary">
+        <div className="rounded-full bg-blue-100 p-4 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
           <ShieldCheck className="size-8" />
         </div>
       </CardContent>
