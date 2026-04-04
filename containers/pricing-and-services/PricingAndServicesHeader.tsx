@@ -8,15 +8,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Save, ScreenShare } from "lucide-react"
+import { Save } from "lucide-react"
+
+interface City {
+  id: string;
+  name: string;
+  latitude: number | null;
+  longitude: number | null;
+  is_active: boolean;
+}
 
 interface PricingAndServicesHeaderProps {
-  city: string
-  onCityChange: (value: string) => void
+  cities: City[];
+  selectedCityId: string;
+  onCityChange: (value: string) => void;
 }
 
 export function PricingAndServicesHeader({
-  city,
+  cities,
+  selectedCityId,
   onCityChange,
 }: PricingAndServicesHeaderProps) {
   return (
@@ -31,14 +41,16 @@ export function PricingAndServicesHeader({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Select value={city} onValueChange={onCityChange}>
+        <Select value={selectedCityId} onValueChange={onCityChange}>
           <SelectTrigger className="w-[170px]">
             <SelectValue placeholder="Select city" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="davao-city">Davao City</SelectItem>
-            <SelectItem value="pampanga">Pampanga</SelectItem>
-            <SelectItem value="iloilo-city">Iloilo City</SelectItem>
+            {cities.map((city) => (
+              <SelectItem key={city.id} value={city.id}>
+                {city.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 

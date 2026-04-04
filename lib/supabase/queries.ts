@@ -343,3 +343,24 @@ export async function fetchCities() {
   if (error) throw error
   return data ?? []
 }
+
+export async function fetchCityServices(cityId: string) {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("city_services")
+    .select("id, city_id, vehicle_type, is_available")
+    .eq("city_id", cityId)
+  if (error) throw error
+  return data ?? []
+}
+
+export async function fetchCitiesWithCoords() {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("cities")
+    .select("id, name, latitude, longitude, is_active")
+    .eq("is_active", true)
+    .order("name", { ascending: true })
+  if (error) throw error
+  return data ?? []
+}

@@ -1,23 +1,50 @@
 "use client"
 
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Car, Van } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
+import { updateServiceAvailability } from "@/app/actions/update-service-availability"
 
 interface ServiceAvailabilityCardProps {
-  isBlueBasicEnabled: boolean
-  onBlueBasicChange: (value: boolean) => void
-  isBlueXlEnabled: boolean
-  onBlueXlChange: (value: boolean) => void
+  cityId: string;
+  isBasicAvailable: boolean;
+  isXlAvailable: boolean;
+  onServiceUpdated: () => void;
 }
 
 export function ServiceAvailabilityCard({
-  isBlueBasicEnabled,
-  onBlueBasicChange,
-  isBlueXlEnabled,
-  onBlueXlChange,
+  cityId,
+  isBasicAvailable,
+  isXlAvailable,
+  onServiceUpdated,
 }: ServiceAvailabilityCardProps) {
+  const router = useRouter()
+  const [isUpdatingBasic, setUpdatingBasic] = useState(false)
+  const [isUpdatingXl, setUpdatingXl] = useState(false)
+
+  async function handleBasicToggle(checked: boolean) {
+    setUpdatingBasic(true)
+    const result = await updateServiceAvailability(cityId, "basic", checked)
+    if (result.success) {
+      onServiceUpdated()
+      router.refresh()
+    }
+    setUpdatingBasic(false)
+  }
+
+  async function handleXlToggle(checked: boolean) {
+    setUpdatingXl(true)
+    const result = await updateServiceAvailability(cityId, "xl", checked)
+    if (result.success) {
+      onServiceUpdated()
+      router.refresh()
+    }
+    setUpdatingXl(false)
+  }
+
   return (
     <Card className="gap-4 py-5">
       <CardHeader className="px-5 pb-0">
@@ -36,8 +63,9 @@ export function ServiceAvailabilityCard({
                 <Car className="size-4" />
               </div>
               <Switch
-                checked={isBlueBasicEnabled}
-                onCheckedChange={onBlueBasicChange}
+                checked={isBasicAvailable}
+                onCheckedChange={handleBasicToggle}
+                disabled={isUpdatingBasic}
                 aria-label="Toggle Blue Basic"
               />
             </div>
@@ -49,14 +77,14 @@ export function ServiceAvailabilityCard({
             </div>
             <div className="flex items-center justify-between pt-1">
               <Badge
-                variant={isBlueBasicEnabled ? "secondary" : "outline"}
+                variant={isBasicAvailable ? "secondary" : "outline"}
                 className={
-                  isBlueBasicEnabled
+                  isBasicAvailable
                     ? "bg-emerald-100 text-emerald-700"
                     : "text-muted-foreground"
                 }
               >
-                {isBlueBasicEnabled ? "Active" : "Inactive"}
+                {isBasicAvailable ? "Active" : "Inactive"}
               </Badge>
               <span className="text-xs text-muted-foreground">ID: S-001</span>
             </div>
@@ -70,8 +98,9 @@ export function ServiceAvailabilityCard({
                 <Van className="size-4" />
               </div>
               <Switch
-                checked={isBlueXlEnabled}
-                onCheckedChange={onBlueXlChange}
+                checked={isXlAvailable}
+                onCheckedChange={handleXlToggle}
+                disabled={isUpdatingXl}
                 aria-label="Toggle Blue XL"
               />
             </div>
@@ -83,14 +112,14 @@ export function ServiceAvailabilityCard({
             </div>
             <div className="flex items-center justify-between pt-1">
               <Badge
-                variant={isBlueXlEnabled ? "secondary" : "outline"}
+                variant={isXlAvailable ? "secondary" : "outline"}
                 className={
-                  isBlueXlEnabled
+                  isXlAvailable
                     ? "bg-emerald-100 text-emerald-700"
                     : "text-muted-foreground"
                 }
               >
-                {isBlueXlEnabled ? "Active" : "Inactive"}
+                {isXlAvailable ? "Active" : "Inactive"}
               </Badge>
               <span className="text-xs text-muted-foreground">ID: S-002</span>
             </div>
