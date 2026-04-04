@@ -11,15 +11,15 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-const CITIES = ["All Cities", "New York", "London", "San Francisco"] as const
 const STATUSES = ["All", "Active", "Inactive", "Suspended"] as const
-const SERVICES = ["All", "Premium", "Standard", "Van"] as const
+const SERVICES = ["All", "Basic", "XL"] as const
 
 interface DriverFiltersProps {
   search: string
   city: string
   status: string
   service: string
+  cities?: Array<{ id: string; name: string; is_active: boolean }>
   onSearchChange: (value: string) => void
   onCityChange: (value: string) => void
   onStatusChange: (value: string) => void
@@ -32,6 +32,7 @@ export function DriverFilters({
   city,
   status,
   service,
+  cities = [],
   onSearchChange,
   onCityChange,
   onStatusChange,
@@ -55,9 +56,10 @@ export function DriverFilters({
           <SelectValue placeholder="All Cities" />
         </SelectTrigger>
         <SelectContent>
-          {CITIES.map((c) => (
-            <SelectItem key={c} value={c === "All Cities" ? "all" : c}>
-              {c}
+          <SelectItem value="all">All Cities</SelectItem>
+          {cities.map((c) => (
+            <SelectItem key={c.id} value={c.name}>
+              {c.name}
             </SelectItem>
           ))}
         </SelectContent>

@@ -16,6 +16,7 @@ export interface CreateDriverInput {
   vehicleYear?: number;
   vehicleColor?: string;
   serviceType?: 'basic' | 'xl';
+  cityId?: string;
 }
 
 export type CreateDriverResult =
@@ -207,6 +208,13 @@ export async function createDriver(
     if (vehicleError) {
       // Already logged in insertVehicleForDriver; continue without failing create
     }
+  }
+
+  if (input.cityId) {
+    await adminClient
+      .from('driver_profiles')
+      .update({ city_id: input.cityId })
+      .eq('id', driverProfile.id);
   }
 
   revalidateDriversPath();

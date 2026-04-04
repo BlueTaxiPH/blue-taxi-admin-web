@@ -13,11 +13,13 @@ const PAGE_SIZE = 5
 
 interface DriverManagementPageProps {
   initialDrivers?: Driver[]
+  cities?: Array<{ id: string; name: string; is_active: boolean }>
   fetchError?: string | null
 }
 
 export function DriverManagementPage({
   initialDrivers = [],
+  cities = [],
   fetchError = null,
 }: DriverManagementPageProps) {
   const router = useRouter()
@@ -57,6 +59,7 @@ export function DriverManagementPage({
       <AddDriverModal
         open={addModalOpen}
         onOpenChange={setAddModalOpen}
+        cities={cities}
         onSuccess={() => {
           setAddModalOpen(false)
           router.refresh()
@@ -73,6 +76,7 @@ export function DriverManagementPage({
         city={city}
         status={status}
         service={service}
+        cities={cities}
         onSearchChange={setSearch}
         onCityChange={(v) => {
           setCity(v)

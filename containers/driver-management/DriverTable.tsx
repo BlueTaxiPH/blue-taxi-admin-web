@@ -3,8 +3,8 @@
 import {
   Check,
   Clock,
-  AlertCircle,
-  AlertTriangle,
+  X,
+  Minus,
   Star,
   MoreHorizontal,
 } from "lucide-react"
@@ -19,6 +19,18 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { approveDriver } from "@/app/actions/approve-driver"
+import { suspendDriver } from "@/app/actions/suspend-driver"
+import { deleteDriver } from "@/app/actions/delete-driver"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 
 interface DriverTableProps {
@@ -30,9 +42,8 @@ interface DriverTableProps {
 
 function ServiceBadge({ type }: { type: Driver["serviceType"] }) {
   const map: Record<Driver["serviceType"], string> = {
-    Premium: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-    Standard: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
-    Van: "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300",
+    Basic: "bg-gray-100 text-gray-800",
+    XL: "bg-violet-100 text-violet-800",
   }
   return (
     <Badge variant="secondary" className={cn("font-medium", map[type])}>
@@ -62,23 +73,23 @@ function DocStatusCell({ docStatus }: { docStatus: Driver["docStatus"] }) {
   > = {
     Verified: {
       icon: Check,
-      className: "text-emerald-600 dark:text-emerald-400",
-      badge: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+      className: "text-emerald-600",
+      badge: "bg-emerald-100 text-emerald-800",
     },
     Pending: {
       icon: Clock,
-      className: "text-amber-600 dark:text-amber-400",
-      badge: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+      className: "text-amber-600",
+      badge: "bg-amber-100 text-amber-800",
     },
-    Expired: {
-      icon: AlertCircle,
-      className: "text-red-600 dark:text-red-400",
-      badge: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+    Rejected: {
+      icon: X,
+      className: "text-red-600",
+      badge: "bg-red-100 text-red-800",
     },
-    "Expiring Soon": {
-      icon: AlertTriangle,
-      className: "text-amber-600 dark:text-amber-400",
-      badge: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+    "No Docs": {
+      icon: Minus,
+      className: "text-gray-400",
+      badge: "bg-gray-100 text-gray-800",
     },
   }
   const { icon: Icon, className, badge } = config[docStatus]
@@ -98,6 +109,7 @@ export function DriverTable({
   onSelectionChange,
   onSelectAll,
 }: DriverTableProps) {
+  const router = useRouter()
   const allSelected =
     drivers.length > 0 && selectedIds.length === drivers.length
   const someSelected = selectedIds.length > 0
@@ -187,10 +199,58 @@ export function DriverTable({
               </div>
             </TableCell>
             <TableCell>
-              <Button variant="ghost" size="icon" className="size-8">
-                <MoreHorizontal className="size-4" />
-                <span className="sr-only">Account actions</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="size-8">
+                    <MoreHorizontal className="size-4" />
+                    <span className="sr-only">Account actions</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link href={`/drivers/${driver.supabaseId}`}>
+                      View Details
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {driver.status !== "Active" ? (
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        if (!driver.supabaseId) return
+                        const result = await approveDriver(driver.supabaseId, "approve")
+                        if (result.success) router.refresh()
+                      }}
+                    >
+                      Approve Driver
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        if (!driver.supabaseId) return
+                        const result = await suspendDriver(driver.supabaseId)
+                        if (result.success) router.refresh()
+                      }}
+                    >
+                      Suspend Driver
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={async () => {
+                      if (!driver.supabaseId) return
+                      const confirmed = confirm(
+                        `Are you sure you want to delete ${driver.name}? This action cannot be undone.`
+                      )
+                      if (!confirmed) return
+                      const result = await deleteDriver(driver.supabaseId)
+                      if (result.success) router.refresh()
+                    }}
+                  >
+                    Delete Driver
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </TableCell>
           </TableRow>
         ))}

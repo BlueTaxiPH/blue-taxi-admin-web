@@ -24,17 +24,16 @@ export interface DriverRow {
     plate_number: string | null
     type: string | null
   }>
+  city_id: string | null
+  cities: { name: string } | null
+  driver_documents: Array<{ is_verified: boolean; rejection_reason: string | null }>
 }
 
-function mapVerificationToDocStatus(status: string): Driver["docStatus"] {
-  switch (status) {
-    case "approved": return "Verified"
-    case "pending": return "Pending"
-    case "under_review": return "Pending"
-    case "rejected": return "Expired"
-    case "suspended": return "Expired"
-    default: return "Pending"
-  }
+function computeDocStatus(docs: Array<{ is_verified: boolean; rejection_reason: string | null }> | null): Driver["docStatus"] {
+  if (!docs || docs.length === 0) return "No Docs"
+  if (docs.some(d => d.rejection_reason !== null && !d.is_verified)) return "Rejected"
+  if (docs.every(d => d.is_verified)) return "Verified"
+  return "Pending"
 }
 
 function mapDriverRowToDriver(row: DriverRow): Driver {
@@ -48,18 +47,17 @@ function mapDriverRowToDriver(row: DriverRow): Driver {
   else if (row.verification_status !== "approved") status = "Inactive"
 
   const primaryVehicle = row.vehicles?.[0]
-  let serviceType: Driver["serviceType"] = "Standard"
   const vt = primaryVehicle?.type ?? ""
-  if (vt === "xl") serviceType = "Van"
+  const serviceType: Driver["serviceType"] = vt === "xl" ? "XL" : "Basic"
 
   return {
     id: row.id.slice(0, 8).toUpperCase(),
     name,
     phone,
-    city: "",
+    city: row.cities?.name ?? "",
     serviceType,
     status,
-    docStatus: mapVerificationToDocStatus(row.verification_status),
+    docStatus: computeDocStatus(row.driver_documents),
     rating: Number(row.avg_rating) || 0,
     supabaseId: row.id,
   }
@@ -73,7 +71,9 @@ export async function fetchDrivers() {
     .select(`
       id, user_id, verification_status, is_online, avg_rating, total_rides, created_at,
       users!user_id(first_name, last_name, phone, email, photo_url),
-      vehicles(make, model, plate_number, type)
+      vehicles(make, model, plate_number, type),
+      cities(name),
+      driver_documents(is_verified, rejection_reason)
     `)
     .order("created_at", { ascending: false })
 
@@ -93,7 +93,9 @@ export async function fetchDriversForAdmin() {
     .select(`
       id, user_id, verification_status, is_online, avg_rating, total_rides, created_at,
       users!user_id(first_name, last_name, phone, email, photo_url),
-      vehicles(make, model, plate_number, type)
+      vehicles(make, model, plate_number, type),
+      cities(name),
+      driver_documents(is_verified, rejection_reason)
     `)
     .order("created_at", { ascending: false })
 
@@ -107,9 +109,11 @@ export async function fetchDriverById(supabaseId: string) {
   const { data, error } = await supabase
     .from("driver_profiles")
     .select(`
-      id, user_id, verification_status, is_online, avg_rating, total_rides, created_at,
+      id, user_id, verification_status, is_online, avg_rating, total_rides, created_at, city_id,
       users!user_id(first_name, last_name, phone, email, photo_url),
-      vehicles(make, model, plate_number, type)
+      vehicles(id, make, model, plate_number, color, type),
+      cities(name),
+      driver_documents(is_verified, rejection_reason)
     `)
     .eq("id", supabaseId)
     .single()
@@ -327,4 +331,15 @@ export async function fetchPassengerById(userId: string) {
   if (ridesError) throw ridesError
 
   return { user, rides: rides ?? [] }
+}
+
+export async function fetchCities() {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("cities")
+    .select("id, name, is_active")
+    .eq("is_active", true)
+    .order("name", { ascending: true })
+  if (error) throw error
+  return data ?? []
 }
