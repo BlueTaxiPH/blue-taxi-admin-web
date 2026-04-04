@@ -7,8 +7,31 @@ import {
   Phone,
   Star,
 } from "lucide-react"
+import type { PassengerUser } from "./types"
 
-export function PassengerDetailsCard() {
+interface PassengerDetailsCardProps {
+  user: PassengerUser
+}
+
+export function PassengerDetailsCard({ user }: PassengerDetailsCardProps) {
+  const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ") || "Unnamed"
+  const initials = fullName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+
+  const profile = Array.isArray(user.passenger_profiles)
+    ? user.passenger_profiles[0]
+    : user.passenger_profiles
+  const totalRides = profile?.total_rides ?? 0
+  const avgRating = profile?.avg_rating ?? null
+
+  const memberSince = new Date(user.created_at).toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+  })
+
   return (
     <div className="rounded-xl border bg-card p-6 shadow-sm">
       <div className="flex flex-row justify-between items-center">
@@ -17,27 +40,31 @@ export function PassengerDetailsCard() {
             className="flex size-16 shrink-0 items-center justify-center rounded-full bg-muted text-2xl font-semibold text-muted-foreground"
             aria-hidden
           >
-            SJ
+            {initials}
           </div>
           <div className="space-y-1.5">
             <div className="flex flex-wrap gap-2">
               <h2 className="text-xl font-semibold text-foreground">
-                Sarah Jenkins
+                {fullName}
               </h2>
               <div className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
                 <span className="size-1.5 rounded-full bg-emerald-500" />
-                Verified
+                Active
               </div>
             </div>
             <div className="flex flex-row gap-4">
-              <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Mail className="size-4" aria-hidden />
-                <span>sarah.j@example.com</span>
-              </p>
-              <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Phone className="size-4" aria-hidden />
-                <span>+1 (555) 012-3456</span>
-              </p>
+              {user.email ? (
+                <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Mail className="size-4" aria-hidden />
+                  <span>{user.email}</span>
+                </p>
+              ) : null}
+              {user.phone ? (
+                <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Phone className="size-4" aria-hidden />
+                  <span>{user.phone}</span>
+                </p>
+              ) : null}
             </div>
           </div>
         </div>
@@ -73,27 +100,32 @@ export function PassengerDetailsCard() {
         <div>
           <p className="text-xs uppercase tracking-wide">Rating</p>
           <p className="mt-1 inline-flex items-center gap-1 text-base font-semibold text-foreground">
-            <Star className="size-4 fill-amber-400 text-amber-400" aria-hidden />
-            4.85{" "}
-            <span className="text-xs font-normal text-muted-foreground">
-              (42 trips)
-            </span>
+            {avgRating != null ? (
+              <>
+                <Star className="size-4 fill-amber-400 text-amber-400" aria-hidden />
+                {avgRating.toFixed(2)}{" "}
+                <span className="text-xs font-normal text-muted-foreground">
+                  ({totalRides} trips)
+                </span>
+              </>
+            ) : (
+              <span className="text-sm font-normal text-muted-foreground">N/A</span>
+            )}
           </p>
         </div>
         <div>
           <p className="text-xs uppercase tracking-wide">Member since</p>
           <p className="mt-1 text-base font-medium text-foreground">
-            Oct 2021
+            {memberSince}
           </p>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-wide">Total spent</p>
+          <p className="text-xs uppercase tracking-wide">Total trips</p>
           <p className="mt-1 text-base font-semibold text-foreground">
-            $1,240.50
+            {totalRides}
           </p>
         </div>
       </div>
     </div>
   )
 }
-

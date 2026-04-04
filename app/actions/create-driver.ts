@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin-client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { failure, revalidateDriversPath } from '@/lib/actions/result';
+import { requireAdmin } from '@/lib/auth/require-admin';
 
 export interface CreateDriverInput {
   fullName: string;
@@ -153,6 +154,9 @@ async function insertVehicleForDriver(
 export async function createDriver(
   input: CreateDriverInput,
 ): Promise<CreateDriverResult> {
+  const adminAuth = await requireAdmin();
+  if ('error' in adminAuth) return failure(adminAuth.error);
+
   const validation = validateCreateDriverInput(input);
   if (!validation.valid) {
     return failure(validation.error);

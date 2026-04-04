@@ -27,8 +27,8 @@ export default async function PaymentsPage() {
   let payouts: Awaited<ReturnType<typeof fetchPayouts>> = []
   try {
     payouts = await fetchPayouts()
-  } catch {
-    // render with empty state
+  } catch (err) {
+    console.error("[Payments] fetch error:", err)
   }
 
   return (

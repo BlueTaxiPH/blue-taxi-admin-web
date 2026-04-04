@@ -1,5 +1,10 @@
 import { DashboardPage } from "./DashboardPage"
+import type { DashboardMetrics } from "@/types/dashboard"
 
-export default function DashboardSection() {
-  return <DashboardPage />
+interface DashboardSectionProps {
+  metrics: DashboardMetrics
+}
+
+export function DashboardSection({ metrics }: DashboardSectionProps) {
+  return <DashboardPage metrics={metrics} />
 }

@@ -8,51 +8,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import type { PassengerRide } from "./types"
 
-const trips = [
-  {
-    id: "#TR-9281",
-    type: "Standard",
-    date: "Oct 24, 2023",
-    time: "08:45 AM",
-    route: "SFO Terminal 2",
-    driver: "Michael J.",
-    status: "Completed",
-    amount: "$42.80",
-  },
-  {
-    id: "#TR-8821",
-    type: "Premium",
-    date: "Oct 22, 2023",
-    time: "06:30 PM",
-    route: "SFO Terminal 2",
-    driver: "David K.",
-    status: "Completed",
-    amount: "$58.20",
-  },
-  {
-    id: "#TR-8190",
-    type: "Standard",
-    date: "Oct 20, 2023",
-    time: "02:15 PM",
-    route: "Union Square → Golden Gate Park",
-    driver: "Alex S.",
-    status: "Cancelled",
-    amount: "$0.00",
-  },
-  {
-    id: "#TR-8188",
-    type: "Standard",
-    date: "Oct 18, 2023",
-    time: "11:05 AM",
-    route: "Mission District → SOMA",
-    driver: "Kelly R.",
-    status: "Completed",
-    amount: "$17.40",
-  },
-]
+interface PassengerTripHistoryProps {
+  rides: PassengerRide[]
+}
 
-export function PassengerTripHistory() {
+export function PassengerTripHistory({ rides }: PassengerTripHistoryProps) {
   return (
     <section className="flex h-full flex-col rounded-xl border bg-card p-6 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -89,50 +51,79 @@ export function PassengerTripHistory() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {trips.map((trip) => (
-              <TableRow key={trip.id}>
-                <TableCell>
-                  <div className="flex flex-col">
-                    <span className="font-medium text-foreground">
-                      {trip.id}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {trip.type}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-col text-sm">
-                    <span>{trip.date}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {trip.time}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="max-w-xs text-sm">{trip.route}</TableCell>
-                <TableCell className="text-sm">{trip.driver}</TableCell>
-                <TableCell>
-                  <StatusPill status={trip.status} />
-                </TableCell>
-                <TableCell className="text-right text-sm font-semibold">
-                  {trip.amount}
+            {rides.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
+                  No trips found
                 </TableCell>
               </TableRow>
-            ))}
+            ) : null}
+            {rides.map((ride) => {
+              const driver = Array.isArray(ride.driver)
+                ? ride.driver[0]
+                : ride.driver
+              const driverName = driver
+                ? [driver.first_name, driver.last_name].filter(Boolean).join(" ")
+                : "Unassigned"
+
+              const route = [ride.pickup_address, ride.dropoff_address]
+                .filter(Boolean)
+                .join(" -> ")
+
+              const rideDate = new Date(ride.created_at)
+              const dateStr = rideDate.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })
+              const timeStr = rideDate.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+
+              const displayStatus = ride.status
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, (c) => c.toUpperCase())
+
+              const fare = ride.final_fare != null
+                ? `P${ride.final_fare.toFixed(2)}`
+                : "P0.00"
+
+              return (
+                <TableRow key={ride.id}>
+                  <TableCell>
+                    <span className="font-medium text-foreground">
+                      #{ride.id.slice(0, 8).toUpperCase()}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col text-sm">
+                      <span>{dateStr}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {timeStr}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="max-w-xs truncate text-sm">
+                    {route || "N/A"}
+                  </TableCell>
+                  <TableCell className="text-sm">{driverName}</TableCell>
+                  <TableCell>
+                    <StatusPill status={displayStatus} />
+                  </TableCell>
+                  <TableCell className="text-right text-sm font-semibold">
+                    {fare}
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
       </div>
 
-      
       <div className="mt-auto flex w-full flex-wrap pt-4 justify-between gap-3 text-xs text-muted-foreground">
         <div className="flex items-center">
-          <p>Showing 4 of 42 trips</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline">
-            Prev
-          </Button>
-          <Button>Next</Button>
+          <p>Showing {rides.length} trips</p>
         </div>
       </div>
     </section>
@@ -158,7 +149,11 @@ function StatusPill({ status }: { status: string }) {
     },
   }
 
-  const variant = config[status] ?? config.Completed
+  const variant = config[status] ?? {
+    dot: "bg-blue-500",
+    label: "text-blue-800 dark:text-blue-300",
+    badge: "bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  }
 
   return (
     <span
@@ -169,4 +164,3 @@ function StatusPill({ status }: { status: string }) {
     </span>
   )
 }
-

@@ -1,19 +1,50 @@
 "use client"
 
-import { History, ShieldCheck } from "lucide-react"
+import { useState, useTransition } from "react"
+import { History, ShieldCheck, Loader2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { Button } from "@/components/ui/button"
+import { updatePlatformFee } from "@/app/actions/platform-fee"
+import type { PlatformFee } from "@/types/platform-fee"
 
 interface ActivePricingRuleEditorCardProps {
   isDynamicSurgeEnabled: boolean
   onDynamicSurgeChange: (value: boolean) => void
+  activeFee: PlatformFee | null
 }
 
 export function ActivePricingRuleEditorCard({
   isDynamicSurgeEnabled,
   onDynamicSurgeChange,
+  activeFee,
 }: ActivePricingRuleEditorCardProps) {
+  const [platformFee, setPlatformFee] = useState(
+    activeFee?.fee_amount?.toString() ?? "0"
+  )
+  const [isPending, startTransition] = useTransition()
+  const [saveMessage, setSaveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+
+  function handleSavePlatformFee() {
+    setSaveMessage(null)
+    const amount = parseFloat(platformFee)
+
+    if (isNaN(amount) || amount < 0) {
+      setSaveMessage({ type: "error", text: "Please enter a valid fee amount (0 or greater)." })
+      return
+    }
+
+    startTransition(async () => {
+      const result = await updatePlatformFee(amount)
+      if (result.success) {
+        setSaveMessage({ type: "success", text: "Platform fee updated successfully." })
+      } else {
+        setSaveMessage({ type: "error", text: result.error })
+      }
+    })
+  }
+
   return (
     <Card className="gap-4 py-5">
       <CardHeader className="px-5 pb-0">
@@ -28,6 +59,61 @@ export function ActivePricingRuleEditorCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-5 px-5">
+        {/* Platform Fee Section */}
+        <div className="rounded-lg border p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">Platform Fee</p>
+              <p className="text-sm text-muted-foreground">
+                Fixed fee added to every ride and collected by the platform.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-end gap-3">
+            <div className="flex-1 space-y-1.5">
+              <label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                Fee Amount (PHP)
+              </label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={platformFee}
+                onChange={(e) => {
+                  setPlatformFee(e.target.value)
+                  setSaveMessage(null)
+                }}
+                placeholder="0.00"
+              />
+            </div>
+            <Button
+              onClick={handleSavePlatformFee}
+              disabled={isPending}
+              size="sm"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Fee"
+              )}
+            </Button>
+          </div>
+          {saveMessage ? (
+            <p
+              className={`text-sm ${
+                saveMessage.type === "success"
+                  ? "text-green-600"
+                  : "text-red-600"
+              }`}
+            >
+              {saveMessage.text}
+            </p>
+          ) : null}
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">

@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { MOCK_PASSENGERS } from "@/lib/passengers-mock"
+import type { Passenger } from "@/types/passenger"
 import { PassengerPageHeader } from "./PassengerPageHeader"
 import { PassengerFilters } from "./PassengerFilters"
 import { PassengerTable } from "./PassengerTable"
@@ -9,14 +9,17 @@ import { PassengerTablePagination } from "./PassengerTablePagination"
 
 const PAGE_SIZE = 6
 
-export function PassengerManagementPage() {
+interface PassengerManagementPageProps {
+  initialPassengers: Passenger[]
+}
+
+export function PassengerManagementPage({ initialPassengers }: PassengerManagementPageProps) {
   const [search, setSearch] = useState("")
   const [status, setStatus] = useState("all")
-  const [fraudStatus, setFraudStatus] = useState("all")
   const [page, setPage] = useState(1)
 
   const filteredPassengers = useMemo(() => {
-    return MOCK_PASSENGERS.filter((p) => {
+    return initialPassengers.filter((p) => {
       const normalizedSearch = search.trim().toLowerCase()
       const matchesSearch =
         !normalizedSearch ||
@@ -26,12 +29,9 @@ export function PassengerManagementPage() {
 
       const matchesStatus = status === "all" || p.status === status
 
-      const matchesFraud =
-        fraudStatus === "all" || p.fraudRisk === fraudStatus
-
-      return matchesSearch && matchesStatus && matchesFraud
+      return matchesSearch && matchesStatus
     })
-  }, [search, status, fraudStatus])
+  }, [search, status, initialPassengers])
 
   const totalCount = filteredPassengers.length
   const maxPage = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
@@ -49,17 +49,12 @@ export function PassengerManagementPage() {
         <PassengerFilters
           search={search}
           status={status}
-          fraudStatus={fraudStatus}
           onSearchChange={(value) => {
             setSearch(value)
             setPage(1)
           }}
           onStatusChange={(value) => {
             setStatus(value)
-            setPage(1)
-          }}
-          onFraudStatusChange={(value) => {
-            setFraudStatus(value)
             setPage(1)
           }}
         />
@@ -76,4 +71,3 @@ export function PassengerManagementPage() {
     </div>
   )
 }
-

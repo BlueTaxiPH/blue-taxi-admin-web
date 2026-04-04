@@ -1,6 +1,10 @@
 import { PassengerManagementPage } from "./PassengerManagementPage"
+import type { Passenger } from "@/types/passenger"
 
-export default function PassengerManagementSection() {
-  return <PassengerManagementPage />
+interface PassengerManagementSectionProps {
+  initialPassengers: Passenger[]
 }
 
+export function PassengerManagementSection({ initialPassengers }: PassengerManagementSectionProps) {
+  return <PassengerManagementPage initialPassengers={initialPassengers} />
+}

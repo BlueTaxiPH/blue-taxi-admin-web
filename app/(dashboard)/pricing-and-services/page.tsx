@@ -1,5 +1,18 @@
-import PricingAndServicesSection from "@/containers/pricing-and-services"
+import { fetchActivePlatformFee, fetchPlatformFeeHistory } from "@/lib/supabase/queries";
+import PricingAndServicesSection from "@/containers/pricing-and-services";
 
-export default function PricingAndServicesRoutePage() {
-  return <PricingAndServicesSection />
+export const dynamic = "force-dynamic";
+
+export default async function PricingAndServicesRoutePage() {
+  const [activeFee, feeHistory] = await Promise.all([
+    fetchActivePlatformFee(),
+    fetchPlatformFeeHistory(),
+  ]);
+
+  return (
+    <PricingAndServicesSection
+      activeFee={activeFee}
+      feeHistory={feeHistory}
+    />
+  );
 }

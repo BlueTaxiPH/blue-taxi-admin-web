@@ -1,24 +1,33 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, Star, Car, Phone, User } from "lucide-react"
-import { fetchDriverById } from "@/lib/supabase/queries"
+import { fetchDriverById, fetchDriverDocuments } from "@/lib/supabase/queries"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ApproveDriverButton } from "@/containers/driver-detail/ApproveDriverButton"
+import { DriverDocumentCard } from "@/containers/driver-detail/DriverDocumentCard"
 
 export default async function DriverDetailPage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
+  const { id } = await params
   let data
   try {
-    data = await fetchDriverById(params.id)
+    data = await fetchDriverById(id)
   } catch {
     notFound()
   }
 
   const { driver, raw, avgRating, recentRides } = data
+
+  let documents: Awaited<ReturnType<typeof fetchDriverDocuments>> = []
+  try {
+    documents = await fetchDriverDocuments(id)
+  } catch {
+    // Documents table may not exist yet — fail gracefully
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -82,7 +91,7 @@ export default async function DriverDetailPage({
             </Badge>
           </div>
           {(raw.verification_status === "pending" || raw.verification_status === "under_review") && (
-            <ApproveDriverButton driverId={params.id} />
+            <ApproveDriverButton driverId={id} />
           )}
         </div>
 
@@ -133,6 +142,8 @@ export default async function DriverDetailPage({
           )}
         </div>
       </div>
+
+      <DriverDocumentCard documents={documents} />
     </div>
   )
 }

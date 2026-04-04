@@ -5,8 +5,14 @@ import { PricingAndServicesHeader } from "./PricingAndServicesHeader"
 import { ServiceAvailabilityCard } from "./ServiceAvailabilityCard"
 import { ActivePricingRuleEditorCard } from "./ActivePricingRuleEditorCard"
 import { VersionHistoryCard } from "./VersionHistoryCard"
+import type { PlatformFee } from "@/types/platform-fee"
 
-export function PricingAndServicesPage() {
+interface PricingAndServicesPageProps {
+  activeFee: PlatformFee | null;
+  feeHistory: PlatformFee[];
+}
+
+export function PricingAndServicesPage({ activeFee, feeHistory }: PricingAndServicesPageProps) {
   const [city, setCity] = useState("metro-manila")
   const [isBlueBasicEnabled, setBlueBasicEnabled] = useState(true)
   const [isBlueXlEnabled, setBlueXlEnabled] = useState(true)
@@ -28,11 +34,12 @@ export function PricingAndServicesPage() {
           <ActivePricingRuleEditorCard
             isDynamicSurgeEnabled={isDynamicSurgeEnabled}
             onDynamicSurgeChange={setDynamicSurgeEnabled}
+            activeFee={activeFee}
           />
         </section>
 
         <aside>
-          <VersionHistoryCard />
+          <VersionHistoryCard feeHistory={feeHistory} />
         </aside>
       </main>
     </div>

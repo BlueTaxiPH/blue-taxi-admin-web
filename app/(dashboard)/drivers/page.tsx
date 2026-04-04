@@ -10,7 +10,12 @@ export default async function DriversPage() {
   try {
     drivers = await fetchDriversForAdmin()
   } catch (err) {
-    fetchError = err instanceof Error ? err.message : "Failed to load drivers"
+    fetchError =
+      err instanceof Error
+        ? err.message
+        : typeof err === "object" && err !== null && "message" in err
+          ? String((err as { message: string }).message)
+          : "Failed to load drivers"
   }
   return (
     <DriverManagementPage
