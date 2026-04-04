@@ -36,9 +36,9 @@ export function PricingAndServicesHeader({
             <SelectValue placeholder="Select city" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="metro-manila">Metro Manila</SelectItem>
-            <SelectItem value="cebu-city">Cebu City</SelectItem>
             <SelectItem value="davao-city">Davao City</SelectItem>
+            <SelectItem value="pampanga">Pampanga</SelectItem>
+            <SelectItem value="iloilo-city">Iloilo City</SelectItem>
           </SelectContent>
         </Select>
 

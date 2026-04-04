@@ -8,44 +8,56 @@ export type UpdatePlatformFeeResult =
   | { success: true }
   | { success: false; error: string };
 
-const MAX_PLATFORM_FEE = 1000;
+const MAX_TOTAL_FEE = 1000;
 
 export async function updatePlatformFee(
-  newAmount: number,
+  platformAmount: number,
+  insuranceAmount: number,
   label: string = 'Platform Fee',
 ): Promise<UpdatePlatformFeeResult> {
   const auth = await requireAdmin();
   if ('error' in auth) return { success: false, error: auth.error };
 
-  if (newAmount < 0 || newAmount > MAX_PLATFORM_FEE) {
-    return { success: false, error: `Fee must be between 0 and ${MAX_PLATFORM_FEE}.` };
+  if (platformAmount < 0) return { success: false, error: 'Platform fee must be >= 0.' };
+  if (insuranceAmount < 0) return { success: false, error: 'Insurance fee must be >= 0.' };
+
+  const totalFeeAmount = platformAmount + insuranceAmount;
+  if (totalFeeAmount > MAX_TOTAL_FEE) {
+    return { success: false, error: `Total fee must not exceed ₱${MAX_TOTAL_FEE}.` };
   }
 
   const adminClient = createAdminClient();
 
-  // Insert new active fee first (safer — if this fails, old fee remains active)
-  const { data: newFee, error: insertError } = await adminClient
-    .from('platform_fees')
-    .insert({
-      fee_amount: newAmount,
-      label,
-      is_active: true,
-      created_by: auth.user.id,
-    })
-    .select('id')
-    .single();
-
-  if (insertError) return { success: false, error: insertError.message };
-
-  // Deactivate all other fees (excluding the one we just inserted)
+  // Deactivate current active fee first (the unique index only allows one active row)
   const { error: deactivateError } = await adminClient
     .from('platform_fees')
     .update({ is_active: false })
-    .eq('is_active', true)
-    .neq('id', newFee.id);
+    .eq('is_active', true);
 
   if (deactivateError) {
-    return { success: false, error: `Fee created but failed to deactivate old fee: ${deactivateError.message}` };
+    return { success: false, error: `Failed to deactivate current fee: ${deactivateError.message}` };
+  }
+
+  // Insert new active fee
+  const { error: insertError } = await adminClient
+    .from('platform_fees')
+    .insert({
+      fee_amount: totalFeeAmount,
+      insurance_amount: insuranceAmount,
+      label,
+      is_active: true,
+      created_by: auth.user.id,
+    });
+
+  if (insertError) {
+    // Rollback: try to reactivate the most recent fee
+    await adminClient
+      .from('platform_fees')
+      .update({ is_active: true })
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    return { success: false, error: insertError.message };
   }
 
   revalidatePath('/pricing-and-services');

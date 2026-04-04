@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { History, ShieldCheck, Loader2 } from "lucide-react"
+import { History, Loader2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
@@ -20,25 +20,36 @@ export function ActivePricingRuleEditorCard({
   onDynamicSurgeChange,
   activeFee,
 }: ActivePricingRuleEditorCardProps) {
-  const [platformFee, setPlatformFee] = useState(
-    activeFee?.fee_amount?.toString() ?? "0"
-  )
+  const insuranceFromDb = activeFee?.insurance_amount ?? 0
+  const platformFromDb = activeFee
+    ? activeFee.fee_amount - insuranceFromDb
+    : 0
+
+  const [platformFeeInput, setPlatformFeeInput] = useState(String(platformFromDb))
+  const [insuranceFeeInput, setInsuranceFeeInput] = useState(String(insuranceFromDb))
   const [isPending, startTransition] = useTransition()
   const [saveMessage, setSaveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
-  function handleSavePlatformFee() {
-    setSaveMessage(null)
-    const amount = parseFloat(platformFee)
+  const totalPlatformFee = (Number(platformFeeInput) || 0) + (Number(insuranceFeeInput) || 0)
 
-    if (isNaN(amount) || amount < 0) {
-      setSaveMessage({ type: "error", text: "Please enter a valid fee amount (0 or greater)." })
+  function handleSave() {
+    setSaveMessage(null)
+    const platformAmount = parseFloat(platformFeeInput)
+    const insuranceAmount = parseFloat(insuranceFeeInput)
+
+    if (isNaN(platformAmount) || platformAmount < 0) {
+      setSaveMessage({ type: "error", text: "Platform fee must be a valid number >= 0." })
+      return
+    }
+    if (isNaN(insuranceAmount) || insuranceAmount < 0) {
+      setSaveMessage({ type: "error", text: "Insurance fee must be a valid number >= 0." })
       return
     }
 
     startTransition(async () => {
-      const result = await updatePlatformFee(amount)
+      const result = await updatePlatformFee(platformAmount, insuranceAmount)
       if (result.success) {
-        setSaveMessage({ type: "success", text: "Platform fee updated successfully." })
+        setSaveMessage({ type: "success", text: "Fees updated successfully." })
       } else {
         setSaveMessage({ type: "error", text: result.error })
       }
@@ -52,42 +63,69 @@ export function ActivePricingRuleEditorCard({
           <div>
             <CardTitle className="text-lg">Active Pricing Rule Editor</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Editing: Economy Class for Metro Manila
+              Manage platform fees and insurance charges.
             </p>
           </div>
           <History className="size-4 text-muted-foreground" />
         </div>
       </CardHeader>
       <CardContent className="space-y-5 px-5">
-        {/* Platform Fee Section */}
-        <div className="rounded-lg border p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Platform Fee</p>
-              <p className="text-sm text-muted-foreground">
-                Fixed fee added to every ride and collected by the platform.
-              </p>
-            </div>
+        <div className="rounded-lg border p-4 space-y-4">
+          <div>
+            <p className="font-medium">Fee Breakdown</p>
+            <p className="text-sm text-muted-foreground">
+              Platform fee and insurance are combined as the total fee added to every ride.
+            </p>
           </div>
-          <div className="flex items-end gap-3">
-            <div className="flex-1 space-y-1.5">
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
               <label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                Fee Amount (PHP)
+                Platform Fee (₱)
               </label>
               <Input
                 type="number"
                 min="0"
                 step="0.01"
-                value={platformFee}
+                value={platformFeeInput}
                 onChange={(e) => {
-                  setPlatformFee(e.target.value)
+                  setPlatformFeeInput(e.target.value)
                   setSaveMessage(null)
                 }}
                 placeholder="0.00"
               />
             </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                Insurance Fee (₱)
+              </label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={insuranceFeeInput}
+                onChange={(e) => {
+                  setInsuranceFeeInput(e.target.value)
+                  setSaveMessage(null)
+                }}
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+
+          <div className="rounded-md border bg-muted/50 px-4 py-3">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+              Total Fee — passed to drivers &amp; passengers
+            </p>
+            <p className="text-lg font-bold">₱{totalPlatformFee.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              This amount is added to the meter fare on every completed ride.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
             <Button
-              onClick={handleSavePlatformFee}
+              onClick={handleSave}
               disabled={isPending}
               size="sm"
             >
@@ -97,21 +135,15 @@ export function ActivePricingRuleEditorCard({
                   Saving...
                 </>
               ) : (
-                "Save Fee"
+                "Save Fees"
               )}
             </Button>
+            {saveMessage ? (
+              <p className={`text-sm ${saveMessage.type === "success" ? "text-green-600" : "text-red-600"}`}>
+                {saveMessage.text}
+              </p>
+            ) : null}
           </div>
-          {saveMessage ? (
-            <p
-              className={`text-sm ${
-                saveMessage.type === "success"
-                  ? "text-green-600"
-                  : "text-red-600"
-              }`}
-            >
-              {saveMessage.text}
-            </p>
-          ) : null}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -140,34 +172,6 @@ export function ActivePricingRuleEditorCard({
             <Input defaultValue="2.50" />
             <p className="text-xs text-muted-foreground">
               Time-based charge for duration.
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Minimum Fare
-            </label>
-            <Input defaultValue="75.00" />
-            <p className="text-xs text-muted-foreground">
-              Minimum amount charged regardless of distance.
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Cancellation Fee
-            </label>
-            <Input defaultValue="50.00" />
-            <p className="text-xs text-muted-foreground">
-              Charged if user cancels after 5 minutes.
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <label className="flex items-center gap-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Insurance Fee
-              <ShieldCheck className="size-3" />
-            </label>
-            <Input defaultValue="5.00" />
-            <p className="text-xs text-muted-foreground">
-              Mandatory fixed regulatory fee.
             </p>
           </div>
         </div>

@@ -56,8 +56,11 @@ export function VersionHistoryCard({ feeHistory }: VersionHistoryCardProps) {
                   {formatDate(item.created_at)}
                 </p>
                 <div className="mt-2 rounded-md bg-muted/60 p-2.5">
-                  <p className="text-xs font-medium">
-                    {formatCurrency(item.fee_amount)}
+                  <p className="text-sm font-medium">
+                    ₱{item.fee_amount.toFixed(2)} total
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    ₱{(item.fee_amount - (item.insurance_amount ?? 0)).toFixed(2)} platform + ₱{(item.insurance_amount ?? 0).toFixed(2)} insurance
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {item.created_by ? `Updated by admin` : "System"}

@@ -38,10 +38,7 @@ interface EditDriverFormProps {
 }
 
 const VERIFICATION_STATUSES = [
-  { value: 'pending', label: 'Pending' },
-  { value: 'under_review', label: 'Under Review' },
   { value: 'approved', label: 'Approved' },
-  { value: 'rejected', label: 'Rejected' },
   { value: 'suspended', label: 'Suspended' },
 ];
 

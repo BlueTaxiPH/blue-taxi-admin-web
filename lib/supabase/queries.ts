@@ -197,7 +197,7 @@ export async function fetchActivePlatformFee() {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("platform_fees")
-    .select("id, fee_amount, label, is_active, created_by, created_at, updated_at")
+    .select("id, fee_amount, insurance_amount, label, is_active, created_by, created_at, updated_at")
     .eq("is_active", true)
     .maybeSingle()
   if (error) throw error
@@ -208,7 +208,7 @@ export async function fetchPlatformFeeHistory() {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("platform_fees")
-    .select("id, fee_amount, label, is_active, created_by, created_at, updated_at")
+    .select("id, fee_amount, insurance_amount, label, is_active, created_by, created_at, updated_at")
     .order("created_at", { ascending: false })
     .limit(20)
   if (error) throw error
