@@ -4,9 +4,12 @@ import { useState, useEffect } from "react"
 import { PricingAndServicesHeader } from "./PricingAndServicesHeader"
 import { ServiceAvailabilityCard } from "./ServiceAvailabilityCard"
 import { ActivePricingRuleEditorCard } from "./ActivePricingRuleEditorCard"
+import { FareConfigCard } from "./FareConfigCard"
 import { VersionHistoryCard } from "./VersionHistoryCard"
+import { CityManagementCard } from "./CityManagementCard"
 import { createClient } from "@/lib/supabase/client"
 import type { PlatformFee } from "@/types/platform-fee"
+import type { FareConfig } from "@/lib/supabase/queries"
 
 interface City {
   id: string;
@@ -27,13 +30,12 @@ interface PricingAndServicesPageProps {
   activeFee: PlatformFee | null;
   feeHistory: PlatformFee[];
   cities: City[];
+  fareConfig: FareConfig | null;
 }
 
-export function PricingAndServicesPage({ activeFee, feeHistory, cities }: PricingAndServicesPageProps) {
+export function PricingAndServicesPage({ activeFee, feeHistory, cities, fareConfig }: PricingAndServicesPageProps) {
   const [selectedCityId, setSelectedCityId] = useState(cities[0]?.id ?? "")
   const [cityServices, setCityServices] = useState<CityService[]>([])
-  const [isDynamicSurgeEnabled, setDynamicSurgeEnabled] = useState(true)
-
   useEffect(() => {
     if (!selectedCityId) return
 
@@ -77,14 +79,15 @@ export function PricingAndServicesPage({ activeFee, feeHistory, cities }: Pricin
           />
 
           <ActivePricingRuleEditorCard
-            isDynamicSurgeEnabled={isDynamicSurgeEnabled}
-            onDynamicSurgeChange={setDynamicSurgeEnabled}
             activeFee={activeFee}
           />
+
+          <FareConfigCard fareConfig={fareConfig} />
         </section>
 
-        <aside>
+        <aside className="space-y-6">
           <VersionHistoryCard feeHistory={feeHistory} />
+          <CityManagementCard cities={cities} />
         </aside>
       </main>
     </div>

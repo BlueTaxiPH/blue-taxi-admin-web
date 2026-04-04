@@ -1,6 +1,5 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
 import {
   Select,
   SelectContent,
@@ -8,7 +7,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Save } from "lucide-react"
 
 interface City {
   id: string;
@@ -54,10 +52,6 @@ export function PricingAndServicesHeader({
           </SelectContent>
         </Select>
 
-        <Button>
-          <Save className="size-4" />
-          Save Changes
-        </Button>
       </div>
     </header>
   )

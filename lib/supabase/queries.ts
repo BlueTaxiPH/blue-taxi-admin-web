@@ -364,3 +364,25 @@ export async function fetchCitiesWithCoords() {
   if (error) throw error
   return data ?? []
 }
+
+export interface FareConfig {
+  id: string
+  base_fare: number
+  per_km_rate: number
+  per_minute_rate: number
+  surge_enabled: boolean
+  surge_multiplier: number
+  updated_at: string
+  updated_by: string | null
+}
+
+export async function fetchFareConfig(): Promise<FareConfig | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("fare_config")
+    .select("*")
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data as FareConfig | null
+}
