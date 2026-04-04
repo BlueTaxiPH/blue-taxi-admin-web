@@ -59,6 +59,7 @@ function mapDriverRowToDriver(row: DriverRow): Driver {
     status,
     docStatus: computeDocStatus(row.driver_documents),
     rating: Number(row.avg_rating) || 0,
+    photoUrl: row.users?.photo_url ?? null,
     supabaseId: row.id,
   }
 }

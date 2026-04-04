@@ -172,9 +172,17 @@ export function DriverTable({
             </TableCell>
             <TableCell>
               <div className="flex items-center gap-3">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
-                  {driver.name.split(" ").map((n) => n[0]).join("")}
-                </div>
+                {driver.photoUrl ? (
+                  <img
+                    src={driver.photoUrl}
+                    alt={driver.name}
+                    className="size-9 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
+                    {driver.name.split(" ").map((n) => n[0]).join("")}
+                  </div>
+                )}
                 <div>
                   <p className="font-medium">{driver.name}</p>
                   <p className="text-xs text-muted-foreground">ID: #{driver.id}</p>

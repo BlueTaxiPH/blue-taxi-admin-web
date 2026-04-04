@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react"
 import { fetchDriverById, fetchDriverDocuments, fetchCities } from "@/lib/supabase/queries"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { DriverAvatarUpload } from "@/containers/driver-detail/DriverAvatarUpload"
 import { EditDriverForm } from "@/containers/driver-detail/EditDriverForm"
 import { DOCUMENT_TYPE_LABELS, getDocumentLabel } from "@/lib/document-types"
 import { UploadDocumentButton } from "@/containers/driver-detail/UploadDocumentButton"
@@ -64,6 +65,12 @@ export default async function DriverDetailPage({
             <span className="sr-only">Back to drivers</span>
           </Link>
         </Button>
+        <DriverAvatarUpload
+          driverId={id}
+          userId={raw.user_id}
+          currentPhotoUrl={(raw.users as any)?.photo_url ?? null}
+          driverName={driver.name}
+        />
         <h1 className="text-xl font-semibold">{driver.name}</h1>
         <Badge
           variant="secondary"
