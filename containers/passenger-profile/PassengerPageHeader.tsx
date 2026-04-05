@@ -13,7 +13,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-export function PassengerPageHeader() {
+interface PassengerPageHeaderProps {
+  name: string
+  userId: string
+}
+
+export function PassengerPageHeader({ name, userId }: PassengerPageHeaderProps) {
   const [suspendModalOpen, setSuspendModalOpen] = useState(false)
 
   function handleConfirmSuspend() {
@@ -40,10 +45,10 @@ export function PassengerPageHeader() {
             <div className="flex flex-col gap-0.5">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                  Passenger Profile
+                  {name}
                 </h1>
               </div>
-              <p className="text-sm text-muted-foreground">ID: #PA-8920-XJ</p>
+              <p className="text-sm text-muted-foreground">ID: {userId.slice(0, 8).toUpperCase()}</p>
             </div>
           </div>
         </div>
@@ -84,4 +89,3 @@ export function PassengerPageHeader() {
     </>
   )
 }
-

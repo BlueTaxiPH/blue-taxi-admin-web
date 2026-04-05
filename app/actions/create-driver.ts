@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin-client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { failure, revalidateDriversPath } from '@/lib/actions/result';
+import { requireAdmin } from '@/lib/auth/require-admin';
 
 export interface CreateDriverInput {
   fullName: string;
@@ -15,6 +16,7 @@ export interface CreateDriverInput {
   vehicleYear?: number;
   vehicleColor?: string;
   serviceType?: 'basic' | 'xl';
+  cityId?: string;
 }
 
 export type CreateDriverResult =
@@ -153,6 +155,9 @@ async function insertVehicleForDriver(
 export async function createDriver(
   input: CreateDriverInput,
 ): Promise<CreateDriverResult> {
+  const adminAuth = await requireAdmin();
+  if ('error' in adminAuth) return failure(adminAuth.error);
+
   const validation = validateCreateDriverInput(input);
   if (!validation.valid) {
     return failure(validation.error);
@@ -203,6 +208,13 @@ export async function createDriver(
     if (vehicleError) {
       // Already logged in insertVehicleForDriver; continue without failing create
     }
+  }
+
+  if (input.cityId) {
+    await adminClient
+      .from('driver_profiles')
+      .update({ city_id: input.cityId })
+      .eq('id', driverProfile.id);
   }
 
   revalidateDriversPath();

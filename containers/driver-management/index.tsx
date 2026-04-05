@@ -1,5 +1,11 @@
 import { DriverManagementPage } from "./DriverManagementPage"
 
-export default function DriverManagementSection() {
-  return <DriverManagementPage />
+interface DriverManagementSectionProps {
+  cities?: Array<{ id: string; name: string; is_active: boolean }>
+}
+
+export default function DriverManagementSection({
+  cities = [],
+}: DriverManagementSectionProps) {
+  return <DriverManagementPage cities={cities} />
 }

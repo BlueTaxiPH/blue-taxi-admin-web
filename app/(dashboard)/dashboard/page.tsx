@@ -1,5 +1,9 @@
-import DashboardSection from "@/containers/dashboard"
+import { fetchDashboardMetrics } from "@/lib/supabase/queries"
+import { DashboardSection } from "@/containers/dashboard"
 
-export default function DashboardRoutePage() {
-  return <DashboardSection />
+export const dynamic = "force-dynamic"
+
+export default async function DashboardPage() {
+  const metrics = await fetchDashboardMetrics()
+  return <DashboardSection metrics={metrics} />
 }

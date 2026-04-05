@@ -27,15 +27,16 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const isDashboardRoute = request.nextUrl.pathname.startsWith("/dashboard");
-  if (isDashboardRoute && !user) {
+  const publicPaths = new Set(["/login", "/", "/forgot-password"]);
+  const isPublicRoute = publicPaths.has(request.nextUrl.pathname);
+
+  if (!isPublicRoute && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  const isLoginPage = request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/";
-  if (isLoginPage && user) {
+  if (isPublicRoute && user && request.nextUrl.pathname !== "/forgot-password") {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
@@ -45,5 +46,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };

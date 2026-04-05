@@ -4,7 +4,6 @@ import Link from "next/link"
 import { MoreHorizontal, Star } from "lucide-react"
 import type { Passenger } from "@/types/passenger"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import {
   Table,
   TableBody,
@@ -18,20 +17,6 @@ import { cn } from "@/lib/utils"
 
 interface PassengerTableProps {
   passengers: Passenger[]
-}
-
-function FraudBadge({ risk }: { risk: Passenger["fraudRisk"] }) {
-  const map: Record<Passenger["fraudRisk"], string> = {
-    "Low Risk":
-      "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-    "High Risk":
-      "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-  }
-  return (
-    <Badge variant="secondary" className={cn("rounded-full px-2 py-0.5 text-xs font-medium", map[risk])}>
-      {risk}
-    </Badge>
-  )
 }
 
 function StatusBadge({ status }: { status: Passenger["status"] }) {
@@ -74,9 +59,6 @@ export function PassengerTable({ passengers }: PassengerTableProps) {
             Total Trips
           </TableHead>
           <TableHead className="text-muted-foreground uppercase">Rating</TableHead>
-          <TableHead className="text-muted-foreground uppercase">
-            Fraud Flag
-          </TableHead>
           <TableHead className="text-muted-foreground uppercase">Status</TableHead>
           <TableHead className="w-16 text-muted-foreground uppercase">
             Actions
@@ -85,9 +67,9 @@ export function PassengerTable({ passengers }: PassengerTableProps) {
       </TableHeader>
       <TableBody className="[&_td]:px-6 [&_td]:py-4">
         {passengers.map((p) => (
-          <TableRow key={p.id}>
+          <TableRow key={p.supabaseId}>
             <TableCell>
-              <Link href={`/passengers/${p.id}`} className="block">
+              <Link href={`/passengers/${p.supabaseId}`} className="block">
                 <div className="flex items-center gap-3">
                   <Avatar className="size-9">
                     <AvatarFallback className="text-sm font-medium">
@@ -121,14 +103,11 @@ export function PassengerTable({ passengers }: PassengerTableProps) {
               )}
             </TableCell>
             <TableCell>
-              <FraudBadge risk={p.fraudRisk} />
-            </TableCell>
-            <TableCell>
               <StatusBadge status={p.status} />
             </TableCell>
             <TableCell>
               <Button variant="ghost" size="sm" asChild>
-                <Link href={`/passengers/${p.id}`}>
+                <Link href={`/passengers/${p.supabaseId}`}>
                   <MoreHorizontal className="size-4" />
                 </Link>
               </Button>
@@ -139,4 +118,3 @@ export function PassengerTable({ passengers }: PassengerTableProps) {
     </Table>
   )
 }
-

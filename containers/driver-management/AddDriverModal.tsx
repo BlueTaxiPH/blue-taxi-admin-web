@@ -54,6 +54,7 @@ interface AddDriverModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: (data: AddDriverFormData) => void
+  cities?: Array<{ id: string; name: string; is_active: boolean }>
 }
 
 function hasAnyVehicleField(form: AddDriverFormData): boolean {
@@ -83,8 +84,10 @@ export function AddDriverModal({
   open,
   onOpenChange,
   onSuccess,
+  cities = [],
 }: AddDriverModalProps) {
   const [form, setForm] = useState<AddDriverFormData>(defaultForm)
+  const [cityId, setCityId] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
@@ -98,6 +101,7 @@ export function AddDriverModal({
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
       setForm(defaultForm)
+      setCityId("")
       setServerError(null)
     }
     onOpenChange(nextOpen)
@@ -131,6 +135,7 @@ export function AddDriverModal({
         : undefined,
       vehicleColor: form.vehicleColor?.trim() || undefined,
       serviceType: form.serviceType,
+      cityId: cityId || undefined,
     })
 
     setIsSubmitting(false)
@@ -138,6 +143,7 @@ export function AddDriverModal({
     if (result.success) {
       onSuccess?.(form)
       setForm(defaultForm)
+      setCityId("")
       onOpenChange(false)
     } else {
       setServerError(result.error)
@@ -190,6 +196,23 @@ export function AddDriverModal({
                       onChange={(e) => update("email", e.target.value)}
                     />
                   </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-muted-foreground block text-sm font-medium">
+                    City
+                  </label>
+                  <select
+                    value={cityId}
+                    onChange={(e) => setCityId(e.target.value)}
+                    className="w-full rounded-md border px-3 py-2 text-sm"
+                  >
+                    <option value="">Select a city</option>
+                    {cities.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>

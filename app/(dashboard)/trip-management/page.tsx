@@ -29,8 +29,8 @@ export default async function TripManagementPage() {
   let rides: Awaited<ReturnType<typeof fetchRides>> = []
   try {
     rides = await fetchRides()
-  } catch {
-    // render with empty state
+  } catch (err) {
+    console.error("[TripManagement] fetch error:", err)
   }
 
   return (
