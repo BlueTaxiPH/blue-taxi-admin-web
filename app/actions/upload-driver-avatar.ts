@@ -41,7 +41,11 @@ export async function uploadDriverAvatar(
     .update({ photo_url: publicUrl })
     .eq('id', userId);
 
-  if (updateError) return { success: false, error: updateError.message };
+  if (updateError) {
+    // Clean up uploaded file since DB update failed
+    await adminClient.storage.from('driver-uploads').remove([filePath]);
+    return { success: false, error: updateError.message };
+  }
 
   revalidatePath(`/drivers/${driverId}`);
   revalidatePath('/drivers');

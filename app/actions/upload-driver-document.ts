@@ -32,32 +32,29 @@ export async function uploadDriverDocument(
     .from('driver-uploads')
     .getPublicUrl(filePath);
 
-  // Upsert: update if exists, insert if not
-  const { data: existing } = await adminClient
-    .from('driver_documents')
-    .select('id')
-    .eq('driver_id', driverId)
-    .eq('document_type', documentType)
-    .maybeSingle();
+  const now = new Date().toISOString();
 
-  if (existing) {
-    const { error } = await adminClient
-      .from('driver_documents')
-      .update({ file_url: publicUrl, is_verified: true, verified_by: authResult.user.id, verified_at: new Date().toISOString(), rejection_reason: null })
-      .eq('id', existing.id);
-    if (error) return { success: false, error: error.message };
-  } else {
-    const { error } = await adminClient
-      .from('driver_documents')
-      .insert({
+  // Upsert on (driver_id, document_type) — eliminates the SELECT + conditional
+  // UPDATE/INSERT race condition
+  const { error } = await adminClient
+    .from('driver_documents')
+    .upsert(
+      {
         driver_id: driverId,
         document_type: documentType,
         file_url: publicUrl,
         is_verified: true,
         verified_by: authResult.user.id,
-        verified_at: new Date().toISOString(),
-      });
-    if (error) return { success: false, error: error.message };
+        verified_at: now,
+        rejection_reason: null,
+      },
+      { onConflict: 'driver_id,document_type' },
+    );
+
+  if (error) {
+    // Clean up uploaded file since DB write failed
+    await adminClient.storage.from('driver-uploads').remove([filePath]);
+    return { success: false, error: error.message };
   }
 
   revalidatePath(`/drivers/${driverId}`);

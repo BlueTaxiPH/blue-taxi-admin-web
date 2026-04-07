@@ -109,7 +109,7 @@ SUPABASE_SERVICE_ROLE_KEY      # Service role key (server-only, never NEXT_PUBLI
 This project uses the full `.claude/` structure:
 - `/commands` — Run with `/project:command-name`. Available: review, scaffold-component, debug
 - `/agents` — Subagents for research and QA. Invoke via Agent tool
-- `/rules` — Auto-loaded rules for: nextjs, supabase, ui, code-quality
+- `/rules` — Auto-loaded rules for: nextjs, supabase, supabase-postgres, ui, ui-ux-guidelines, code-quality
 
 See individual files in `.claude/` for details.
 

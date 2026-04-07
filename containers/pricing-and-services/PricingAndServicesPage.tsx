@@ -7,7 +7,7 @@ import { ActivePricingRuleEditorCard } from "./ActivePricingRuleEditorCard"
 import { FareConfigCard } from "./FareConfigCard"
 import { VersionHistoryCard } from "./VersionHistoryCard"
 import { CityManagementCard } from "./CityManagementCard"
-import { createClient } from "@/lib/supabase/client"
+import { fetchCityServicesAction } from "@/app/actions/fetch-city-services"
 import type { PlatformFee } from "@/types/platform-fee"
 import type { FareConfig } from "@/lib/supabase/queries"
 
@@ -36,17 +36,13 @@ interface PricingAndServicesPageProps {
 export function PricingAndServicesPage({ activeFee, feeHistory, cities, fareConfig }: PricingAndServicesPageProps) {
   const [selectedCityId, setSelectedCityId] = useState(cities[0]?.id ?? "")
   const [cityServices, setCityServices] = useState<CityService[]>([])
+
   useEffect(() => {
     if (!selectedCityId) return
 
-    const supabase = createClient()
-    supabase
-      .from("city_services")
-      .select("id, city_id, vehicle_type, is_available")
-      .eq("city_id", selectedCityId)
-      .then(({ data }) => {
-        setCityServices(data ?? [])
-      })
+    fetchCityServicesAction(selectedCityId).then((data) => {
+      setCityServices(data ?? [])
+    })
   }, [selectedCityId])
 
   const isBasicAvailable = cityServices.find((s) => s.vehicle_type === "basic")?.is_available ?? true
@@ -67,14 +63,9 @@ export function PricingAndServicesPage({ activeFee, feeHistory, cities, fareConf
             isBasicAvailable={isBasicAvailable}
             isXlAvailable={isXlAvailable}
             onServiceUpdated={() => {
-              const supabase = createClient()
-              supabase
-                .from("city_services")
-                .select("id, city_id, vehicle_type, is_available")
-                .eq("city_id", selectedCityId)
-                .then(({ data }) => {
-                  setCityServices(data ?? [])
-                })
+              fetchCityServicesAction(selectedCityId).then((data) => {
+                setCityServices(data ?? [])
+              })
             }}
           />
 

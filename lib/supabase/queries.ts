@@ -77,6 +77,7 @@ export async function fetchDrivers() {
       driver_documents(is_verified, rejection_reason)
     `)
     .order("created_at", { ascending: false })
+    .limit(500)
 
   if (error) throw error
   return (data ?? []).map((row) => mapDriverRowToDriver(row as unknown as DriverRow))
@@ -99,6 +100,7 @@ export async function fetchDriversForAdmin() {
       driver_documents(is_verified, rejection_reason)
     `)
     .order("created_at", { ascending: false })
+    .limit(500)
 
   if (error) throw error
   return (data ?? []).map((row) => mapDriverRowToDriver(row as unknown as DriverRow))
@@ -122,16 +124,6 @@ export async function fetchDriverById(supabaseId: string) {
   if (error) throw error
 
   const driverUserId = (data as unknown as DriverRow).user_id
-  const { data: ratingsData } = await supabase
-    .from("ride_ratings")
-    .select("rating")
-    .eq("ratee_id", driverUserId)
-
-  const ratings = (ratingsData ?? []).map((r: { rating: number }) => r.rating)
-  const avgRating =
-    ratings.length > 0
-      ? ratings.reduce((a, b) => a + b, 0) / ratings.length
-      : 0
 
   const { data: ridesData } = await supabase
     .from("rides")
@@ -143,7 +135,7 @@ export async function fetchDriverById(supabaseId: string) {
   return {
     driver: mapDriverRowToDriver(data as unknown as DriverRow),
     raw: data as unknown as DriverRow,
-    avgRating: Math.round(avgRating * 10) / 10,
+    avgRating: Math.round(Number((data as unknown as DriverRow).avg_rating) * 10) / 10,
     recentRides: (ridesData ?? []) as Array<{
       id: string
       status: string
@@ -223,6 +215,7 @@ export async function fetchDriverDocuments(driverProfileId: string) {
     .select("id, document_type, file_url, is_verified, verified_by, verified_at, rejection_reason, created_at, updated_at")
     .eq("driver_id", driverProfileId)
     .order("created_at", { ascending: true })
+    .limit(100)
 
   if (error) throw error
   return data ?? []
@@ -267,7 +260,8 @@ export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
       .from("rides")
       .select("final_fare")
       .eq("status", "completed")
-      .gte("trip_completed_at", todayStart.toISOString()),
+      .gte("trip_completed_at", todayStart.toISOString())
+      .limit(10000),
     supabase
       .from("driver_profiles")
       .select("id", { count: "exact", head: true }),
@@ -298,6 +292,7 @@ export async function fetchPassengers() {
     `)
     .eq("role", "passenger")
     .order("created_at", { ascending: false })
+    .limit(500)
 
   if (error) throw error
   return data ?? []
