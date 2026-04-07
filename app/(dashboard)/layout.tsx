@@ -3,6 +3,13 @@ import { redirect } from "next/navigation"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { createClient } from "@/lib/supabase/server"
+import type { AdminRole } from "@/types/admin-user"
+
+const roleLabels: Record<AdminRole, string> = {
+  superadmin: "Superadmin",
+  blue_taxi_admin: "Blue Taxi Admin",
+  insurance_admin: "Insurance Admin",
+}
 
 export default async function DashboardLayout({
   children,
@@ -15,23 +22,27 @@ export default async function DashboardLayout({
   } = await supabase.auth.getUser()
 
   let adminName = "Admin User"
-  let adminRole = "Global Admin"
+  let adminRole = "Admin"
 
   if (user) {
     const { data: profile } = await supabase
       .from("users")
-      .select("first_name, last_name, role")
+      .select("first_name, last_name, role, admin_status, admin_role, is_active")
       .eq("id", user.id)
       .single()
 
-    if (!profile || profile.role !== "admin") {
-      redirect("/login")
-    }
+    if (!profile || profile.role !== "admin") redirect("/login")
+    if (profile.admin_status === "pending")  redirect("/login?status=pending")
+    if (profile.admin_status === "rejected") redirect("/login?status=rejected")
+    if (!profile.is_active)                  redirect("/login?status=inactive")
 
     adminName =
       [profile.first_name, profile.last_name].filter(Boolean).join(" ") ||
       "Admin User"
-    adminRole = "Global Admin"
+
+    adminRole = profile.admin_role
+      ? roleLabels[profile.admin_role as AdminRole] ?? "Admin"
+      : "Admin"
   }
 
   return (

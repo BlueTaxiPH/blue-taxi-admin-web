@@ -8,6 +8,7 @@ import { DriverAvatarUpload } from "@/containers/driver-detail/DriverAvatarUploa
 import { EditDriverForm } from "@/containers/driver-detail/EditDriverForm"
 import { DOCUMENT_TYPE_LABELS, getDocumentLabel } from "@/lib/document-types"
 import { UploadDocumentButton } from "@/containers/driver-detail/UploadDocumentButton"
+import { ResendInviteButton } from "@/containers/driver-detail/ResendInviteButton"
 
 export default async function DriverDetailPage({
   params,
@@ -84,6 +85,7 @@ export default async function DriverDetailPage({
         >
           {driver.status}
         </Badge>
+        <ResendInviteButton email={(raw.users as any)?.email ?? ''} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

@@ -27,8 +27,11 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const publicPaths = new Set(["/login", "/", "/forgot-password"]);
+  const publicPaths = new Set(["/login", "/", "/forgot-password", "/sign-up", "/driver-setup"]);
   const isPublicRoute = publicPaths.has(request.nextUrl.pathname);
+
+  // These pages handle their own auth tokens — never auto-redirect away from them
+  const noAutoRedirectPaths = new Set(["/forgot-password", "/driver-setup"]);
 
   if (!isPublicRoute && !user) {
     const url = request.nextUrl.clone();
@@ -36,7 +39,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (isPublicRoute && user && request.nextUrl.pathname !== "/forgot-password") {
+  if (isPublicRoute && user && !noAutoRedirectPaths.has(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

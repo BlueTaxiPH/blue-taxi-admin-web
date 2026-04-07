@@ -10,6 +10,7 @@ export interface CreateDriverInput {
   fullName: string;
   email: string;
   phone: string;
+  // password removed — driver sets their own via invite email
   plateNumber?: string;
   vehicleMake?: string;
   vehicleModel?: string;
@@ -23,14 +24,25 @@ export type CreateDriverResult =
   | { success: true; driverId: string }
   | { success: false; error: string };
 
-const REQUIRED_FIELDS_MESSAGE =
-  'Full name, email, and phone are required.';
+const REQUIRED_FIELDS_MESSAGE = 'Full name, email, and phone are required.';
 const PROFILE_NOT_CREATED_MESSAGE =
   'Driver profile was not created automatically. Please retry.';
-const AUTH_CREATE_FAILED_MESSAGE = 'Failed to create auth user.';
+const INVITE_FAILED_MESSAGE = 'Failed to send driver invite.';
 
 const YEAR_MIN = 1990;
 const YEAR_MAX = 2030;
+
+/**
+ * Normalizes a Philippine phone number to E.164 format (+639XXXXXXXXX).
+ * Accepts: 09XXXXXXXXX, 639XXXXXXXXX, +639XXXXXXXXX.
+ */
+function normalizePhilippinePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  if (digits.startsWith('0') && digits.length === 11) return '+63' + digits.slice(1);
+  if (digits.startsWith('63') && digits.length === 12) return '+' + digits;
+  if (raw.startsWith('+')) return raw.trim();
+  return raw.trim();
+}
 
 function validateCreateDriverInput(
   input: CreateDriverInput,
@@ -53,29 +65,30 @@ function parseFullNameToFirstAndLast(
   return { firstName, lastName };
 }
 
-async function createDriverAuthUser(
+async function inviteDriverUser(
   adminClient: SupabaseClient,
   params: {
     email: string;
-    phone: string;
+    normalizedPhone: string;
     firstName: string;
     lastName: string;
   },
 ): Promise<{ userId: string } | { error: string }> {
-  const { data, error } = await adminClient.auth.admin.createUser({
-    email: params.email,
-    phone: params.phone,
-    email_confirm: true,
-    password: crypto.randomUUID(),
-    user_metadata: {
-      role: 'driver',
-      first_name: params.firstName,
-      last_name: params.lastName,
-      phone: params.phone,
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? '';
+  const { data, error } = await adminClient.auth.admin.inviteUserByEmail(
+    params.email,
+    {
+      redirectTo: `${siteUrl}/driver-setup`,
+      data: {
+        role: 'driver',
+        first_name: params.firstName,
+        last_name: params.lastName,
+        phone: params.normalizedPhone,
+      },
     },
-  });
+  );
   if (error || !data.user) {
-    return { error: error?.message ?? AUTH_CREATE_FAILED_MESSAGE };
+    return { error: error?.message ?? INVITE_FAILED_MESSAGE };
   }
   return { userId: data.user.id };
 }
@@ -164,11 +177,12 @@ export async function createDriver(
   }
 
   const { firstName, lastName } = parseFullNameToFirstAndLast(input.fullName);
+  const normalizedPhone = normalizePhilippinePhone(input.phone);
   const adminClient = createAdminClient();
 
-  const authResult = await createDriverAuthUser(adminClient, {
-    email: input.email,
-    phone: input.phone,
+  const authResult = await inviteDriverUser(adminClient, {
+    email: input.email.trim(),
+    normalizedPhone,
     firstName,
     lastName,
   });
@@ -177,6 +191,17 @@ export async function createDriver(
     return failure(authResult.error);
   }
   const userId = authResult.userId;
+
+  // Upsert users row to ensure phone is stored correctly regardless of trigger behavior
+  await adminClient.from('users').upsert({
+    id: userId,
+    role: 'driver',
+    first_name: firstName,
+    last_name: lastName,
+    email: input.email.trim(),
+    phone: normalizedPhone,
+    is_active: true,
+  });
 
   const driverProfile = await getDriverProfileByUserId(adminClient, userId);
   if (!driverProfile) {
@@ -193,21 +218,14 @@ export async function createDriver(
   };
   if (isCompleteVehicleInfo(vehicleFields)) {
     const year = clampVehicleYear(Number(input.vehicleYear));
-    const vehicleError = await insertVehicleForDriver(
-      adminClient,
-      driverProfile.id,
-      {
-        plate_number: input.plateNumber!.trim(),
-        make: input.vehicleMake!.trim(),
-        model: input.vehicleModel!.trim(),
-        year,
-        color: input.vehicleColor!.trim(),
-        type: input.serviceType ?? 'basic',
-      },
-    );
-    if (vehicleError) {
-      // Already logged in insertVehicleForDriver; continue without failing create
-    }
+    await insertVehicleForDriver(adminClient, driverProfile.id, {
+      plate_number: input.plateNumber!.trim(),
+      make: input.vehicleMake!.trim(),
+      model: input.vehicleModel!.trim(),
+      year,
+      color: input.vehicleColor!.trim(),
+      type: input.serviceType ?? 'basic',
+    });
   }
 
   if (input.cityId) {
