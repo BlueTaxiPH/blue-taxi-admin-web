@@ -2,9 +2,11 @@
 
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
+import { Plus } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { PageHeader } from "@/components/page-header"
 import type { Driver } from "@/types/driver"
 import { AddDriverModal } from "./AddDriverModal"
-import { DriverPageHeader } from "./DriverPageHeader"
 import { DriverFilters } from "./DriverFilters"
 import { DriverTable } from "./DriverTable"
 import { DriverTablePagination } from "./DriverTablePagination"
@@ -55,7 +57,17 @@ export function DriverManagementPage({
 
   return (
     <div>
-      <DriverPageHeader onAddDriver={() => setAddModalOpen(true)} />
+      <PageHeader
+        title="Drivers"
+        subtitle="Manage and verify all registered drivers"
+        breadcrumbs={["Operations", "Drivers"]}
+        actions={
+          <Button onClick={() => setAddModalOpen(true)}>
+            <Plus className="size-4" />
+            Add New Driver
+          </Button>
+        }
+      />
       <AddDriverModal
         open={addModalOpen}
         onOpenChange={setAddModalOpen}

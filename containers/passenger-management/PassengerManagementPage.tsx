@@ -1,8 +1,8 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { PageHeader } from "@/components/page-header"
 import type { Passenger } from "@/types/passenger"
-import { PassengerPageHeader } from "./PassengerPageHeader"
 import { PassengerFilters } from "./PassengerFilters"
 import { PassengerTable } from "./PassengerTable"
 import { PassengerTablePagination } from "./PassengerTablePagination"
@@ -44,7 +44,11 @@ export function PassengerManagementPage({ initialPassengers }: PassengerManageme
 
   return (
     <div>
-      <PassengerPageHeader />
+      <PageHeader
+        title="Passengers"
+        subtitle="View and manage registered passengers"
+        breadcrumbs={["Operations", "Passengers"]}
+      />
       <div className="flex flex-col gap-6 p-6">
         <PassengerFilters
           search={search}

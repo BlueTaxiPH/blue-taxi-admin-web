@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 
-import { SystemSettingsHeader } from "./SystemSettingsHeader"
+import { Button } from "@/components/ui/button"
+import { PageHeader } from "@/components/page-header"
 import { RoleBasedControlCard } from "./RoleBasedControlCard"
 import {
   type ModuleId,
@@ -34,8 +35,20 @@ export function SystemSettingsClient() {
 
   return (
     <>
-      <SystemSettingsHeader saveState={saveState} onSaveChanges={handleSaveChanges} />
-      <div className="p-6">
+      <PageHeader
+        title="System Settings"
+        subtitle="Platform configuration and access control"
+        breadcrumbs={["System Settings"]}
+        actions={
+          <div className="flex items-center gap-3">
+            <Button variant="outline">Audit Logs</Button>
+            <Button onClick={handleSaveChanges} disabled={saveState === "saving"}>
+              {saveState === "saving" ? "Saving\u2026" : "Save Changes"}
+            </Button>
+          </div>
+        }
+      />
+      <div className="p-7">
         <RoleBasedControlCard
           roles={roles}
           permissionsByModule={permissionsByModule}

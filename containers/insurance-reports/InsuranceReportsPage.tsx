@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { InsuranceReportsHeader } from "./InsuranceReportsHeader"
+import { PageHeader } from "@/components/page-header"
 import { InsuranceCoverageSummaryCard } from "./InsuranceCoverageSummaryCard"
 import { InsuredTripManifestCard } from "./InsuredTripManifestCard"
 import { InsuredTripManifestPagination } from "./InsuredTripManifestPagination"
@@ -13,7 +13,11 @@ export function InsuranceReportsPage() {
 
   return (
     <div>
-      <InsuranceReportsHeader />
+      <PageHeader
+        title="Insurance Reports"
+        subtitle="Coverage summary and insured trip manifest"
+        breadcrumbs={["Business", "Insurance Reports"]}
+      />
       <main className="space-y-6 p-6">
         <InsuranceCoverageSummaryCard />
         <div className="space-y-4">

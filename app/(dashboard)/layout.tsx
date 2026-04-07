@@ -47,7 +47,7 @@ export default async function DashboardLayout({
 
   return (
     <SidebarProvider>
-      <div data-sidebar-theme="blue-taxi" className="flex min-h-screen w-full">
+      <div className="flex min-h-screen w-full">
         <AppSidebar adminName={adminName} adminRole={adminRole} />
         <SidebarInset>{children}</SidebarInset>
       </div>
