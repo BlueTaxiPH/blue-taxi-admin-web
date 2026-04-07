@@ -1,5 +1,9 @@
 # Blue Taxi Admin Web
 
+## Planning Rule
+
+**BLOCKING REQUIREMENT:** Before planning or implementing ANY feature, fix, or change, invoke the `blue-taxi-planner` skill. It explores all three repos in parallel and produces a cross-repo implementation plan. This applies regardless of scope — even single-repo changes need the planner to confirm nothing else is affected.
+
 Admin dashboard for managing the Blue Taxi ride-hailing platform — drivers, passengers, trips, pricing, insurance, and payments.
 
 ## Stack

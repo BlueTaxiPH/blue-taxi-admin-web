@@ -130,22 +130,22 @@
 
 ### 2.5 Edge Functions
 
-- 6 active Deno functions (see [Section 12](#12-edge-functions))
-- 4 Maps proxy functions (JWT verification disabled — rely on API key secrecy)
-- 2 Admin functions (JWT verification enabled — require authenticated admin token)
+- 7 active Deno functions (see [Section 12](#12-edge-functions))
+- 5 Maps proxy functions (JWT required — session-aware `invokeWithAuth` wrapper on client side)
+- 2 Admin functions (JWT required + admin role verified inside function body)
 
 ---
 
 ## 3. Database Configuration
 
-| Property             | Value                                  |
-| -------------------- | -------------------------------------- |
-| Engine               | PostgreSQL 17                          |
-| Host                 | `db.qmbwreizcwnxxfcpmdyr.supabase.co`  |
-| Release Channel      | GA (Generally Available)               |
-| Schema               | `public`                               |
-| Auth Schema          | `auth` (managed by Supabase)           |
-| Realtime Publication | `supabase_realtime` (6 tables)         |
+| Property             | Value                                 |
+| -------------------- | ------------------------------------- |
+| Engine               | PostgreSQL 17                         |
+| Host                 | `db.qmbwreizcwnxxfcpmdyr.supabase.co` |
+| Release Channel      | GA (Generally Available)              |
+| Schema               | `public`                              |
+| Auth Schema          | `auth` (managed by Supabase)          |
+| Realtime Publication | `supabase_realtime` (6 tables)        |
 
 ---
 
@@ -244,11 +244,11 @@ Document categories required for driver verification (Philippines-specific).
 
 ### `fare_type`
 
-| Value        | Description                                   |
-| ------------ | --------------------------------------------- |
-| `metered`    | Fare calculated by distance/time meter        |
-| `input_fare` | Driver manually inputs the fare amount        |
-| `estimated`  | Upfront estimated fare shown before booking   |
+| Value        | Description                                 |
+| ------------ | ------------------------------------------- |
+| `metered`    | Fare calculated by distance/time meter      |
+| `input_fare` | Driver manually inputs the fare amount      |
+| `estimated`  | Upfront estimated fare shown before booking |
 
 ### `payment_method`
 
@@ -309,21 +309,21 @@ Central identity table. Every authenticated user in `auth.users` has exactly one
 
 One-to-one extension of `users` for driver-specific data, including online session tracking. (4 rows)
 
-| Column                | Type                         | Nullable | Default             | Notes                                                     |
-| --------------------- | ---------------------------- | -------- | ------------------- | --------------------------------------------------------- |
-| `id`                  | `uuid`                       | NO       | `gen_random_uuid()` | PK                                                        |
-| `user_id`             | `uuid`                       | NO       | —                   | UNIQUE FK → `users(id)` ON DELETE CASCADE                 |
-| `verification_status` | `driver_verification_status` | NO       | `'pending'`         |                                                           |
-| `is_online`           | `boolean`                    | NO       | `false`             | Driver available to receive rides                         |
-| `avg_rating`          | `numeric`                    | NO       | `0.00`              | Updated by `update_avg_rating` trigger (incremental)      |
-| `rating_count`        | `integer`                    | NO       | `0`                 | Number of ratings received; used for incremental avg calc |
-| `total_rides`         | `integer`                    | NO       | `0`                 | Updated by `create_driver_earnings_on_completion` trigger |
-| `approved_at`         | `timestamptz`                | YES      | —                   | Set when admin approves                                   |
-| `approved_by`         | `uuid`                       | YES      | —                   | FK → `users(id)`                                          |
-| `current_location`    | `geography(Point, 4326)`     | YES      | —                   | Live GPS position; updated by Driver App                  |
+| Column                | Type                         | Nullable | Default             | Notes                                                            |
+| --------------------- | ---------------------------- | -------- | ------------------- | ---------------------------------------------------------------- |
+| `id`                  | `uuid`                       | NO       | `gen_random_uuid()` | PK                                                               |
+| `user_id`             | `uuid`                       | NO       | —                   | UNIQUE FK → `users(id)` ON DELETE CASCADE                        |
+| `verification_status` | `driver_verification_status` | NO       | `'pending'`         |                                                                  |
+| `is_online`           | `boolean`                    | NO       | `false`             | Driver available to receive rides                                |
+| `avg_rating`          | `numeric`                    | NO       | `0.00`              | Updated by `update_avg_rating` trigger (incremental)             |
+| `rating_count`        | `integer`                    | NO       | `0`                 | Number of ratings received; used for incremental avg calc        |
+| `total_rides`         | `integer`                    | NO       | `0`                 | Updated by `create_driver_earnings_on_completion` trigger        |
+| `approved_at`         | `timestamptz`                | YES      | —                   | Set when admin approves                                          |
+| `approved_by`         | `uuid`                       | YES      | —                   | FK → `users(id)`                                                 |
+| `current_location`    | `geography(Point, 4326)`     | YES      | —                   | Live GPS position; updated by Driver App                         |
 | `online_started_at`   | `timestamptz`                | YES      | —                   | Timestamp when current online session started. NULL when offline |
-| `created_at`          | `timestamptz`                | NO       | `now()`             |                                                           |
-| `updated_at`          | `timestamptz`                | NO       | `now()`             |                                                           |
+| `created_at`          | `timestamptz`                | NO       | `now()`             |                                                                  |
+| `updated_at`          | `timestamptz`                | NO       | `now()`             |                                                                  |
 
 **Indexes:** `driver_profiles_pkey` (id), `driver_profiles_user_id_key` (user_id UNIQUE), `driver_profiles_location_idx` GIST (current_location), `driver_profiles_approved_by_idx` (approved_by), `driver_profiles_online_approved_idx` (user_id WHERE is_online = true AND verification_status = 'approved')
 
@@ -351,20 +351,20 @@ One-to-one extension of `users` for passenger-specific data. (6 rows)
 
 A driver may register multiple vehicles but only one can be active at a time (enforced by partial unique index). (3 rows)
 
-| Column         | Type           | Nullable | Default             | Notes                                         |
-| -------------- | -------------- | -------- | ------------------- | --------------------------------------------- |
-| `id`           | `uuid`         | NO       | `gen_random_uuid()` | PK                                            |
-| `driver_id`    | `uuid`         | NO       | —                   | FK → `driver_profiles(id)` ON DELETE CASCADE  |
-| `type`         | `vehicle_type` | NO       | —                   | `basic` or `xl`                               |
-| `plate_number` | `text`         | NO       | —                   | UNIQUE across all vehicles                    |
-| `make`         | `text`         | NO       | —                   | e.g., "Toyota"                                |
-| `model`        | `text`         | NO       | —                   | e.g., "Vios"                                  |
+| Column         | Type           | Nullable | Default             | Notes                                            |
+| -------------- | -------------- | -------- | ------------------- | ------------------------------------------------ |
+| `id`           | `uuid`         | NO       | `gen_random_uuid()` | PK                                               |
+| `driver_id`    | `uuid`         | NO       | —                   | FK → `driver_profiles(id)` ON DELETE CASCADE     |
+| `type`         | `vehicle_type` | NO       | —                   | `basic` or `xl`                                  |
+| `plate_number` | `text`         | NO       | —                   | UNIQUE across all vehicles                       |
+| `make`         | `text`         | NO       | —                   | e.g., "Toyota"                                   |
+| `model`        | `text`         | NO       | —                   | e.g., "Vios"                                     |
 | `year`         | `smallint`     | NO       | —                   | CHECK: year >= 1990 AND year <= current year + 1 |
-| `color`        | `text`         | NO       | —                   |                                               |
-| `is_active`    | `boolean`      | NO       | `true`              | At most one active vehicle per driver         |
-| `is_verified`  | `boolean`      | NO       | `false`             | Set true by admin after document verification |
-| `created_at`   | `timestamptz`  | NO       | `now()`             |                                               |
-| `updated_at`   | `timestamptz`  | NO       | `now()`             |                                               |
+| `color`        | `text`         | NO       | —                   |                                                  |
+| `is_active`    | `boolean`      | NO       | `true`              | At most one active vehicle per driver            |
+| `is_verified`  | `boolean`      | NO       | `false`             | Set true by admin after document verification    |
+| `created_at`   | `timestamptz`  | NO       | `now()`             |                                                  |
+| `updated_at`   | `timestamptz`  | NO       | `now()`             |                                                  |
 
 **Indexes:** `vehicles_pkey`, `vehicles_plate_number_key` (UNIQUE), `vehicles_one_active_per_driver` (UNIQUE on `driver_id` WHERE `is_active = true`)
 
@@ -395,44 +395,44 @@ Stores the uploaded document URLs for driver verification. Each document type ma
 
 The core operational table. Contains the complete record of every ride request from creation through completion or cancellation. `pickup_location` and `dropoff_location` are generated columns computed from their respective lat/lng pairs. (228 rows)
 
-| Column                 | Type                     | Nullable | Default             | Notes                                      |
-| ---------------------- | ------------------------ | -------- | ------------------- | ------------------------------------------ |
-| `id`                   | `uuid`                   | NO       | `gen_random_uuid()` | PK                                         |
-| `passenger_id`         | `uuid`                   | NO       | —                   | FK → `users(id)` ON DELETE RESTRICT        |
-| `driver_id`            | `uuid`                   | YES      | —                   | FK → `users(id)` — set on acceptance       |
-| `vehicle_id`           | `uuid`                   | YES      | —                   | FK → `vehicles(id)` — set on acceptance    |
-| `status`               | `ride_status`            | NO       | `'pending'`         | Full ride state machine (11 values)        |
-| `pickup_address`       | `text`                   | NO       | —                   | Human-readable address                     |
-| `pickup_lat`           | `numeric`                | NO       | —                   |                                            |
-| `pickup_lng`           | `numeric`                | NO       | —                   |                                            |
-| `pickup_place_id`      | `text`                   | YES      | —                   | Google Place ID                            |
-| `pickup_note`          | `text`                   | YES      | —                   | Passenger instructions                     |
-| `dropoff_address`      | `text`                   | NO       | —                   |                                            |
-| `dropoff_lat`          | `numeric`                | NO       | —                   |                                            |
-| `dropoff_lng`          | `numeric`                | NO       | —                   |                                            |
-| `dropoff_place_id`     | `text`                   | YES      | —                   | Google Place ID                            |
-| `distance_meters`      | `integer`                | YES      | —                   | CHECK: >= 0. Route distance from Directions API |
-| `duration_seconds`     | `integer`                | YES      | —                   | CHECK: >= 0. Estimated trip duration       |
+| Column                 | Type                     | Nullable | Default             | Notes                                                      |
+| ---------------------- | ------------------------ | -------- | ------------------- | ---------------------------------------------------------- |
+| `id`                   | `uuid`                   | NO       | `gen_random_uuid()` | PK                                                         |
+| `passenger_id`         | `uuid`                   | NO       | —                   | FK → `users(id)` ON DELETE RESTRICT                        |
+| `driver_id`            | `uuid`                   | YES      | —                   | FK → `users(id)` — set on acceptance                       |
+| `vehicle_id`           | `uuid`                   | YES      | —                   | FK → `vehicles(id)` — set on acceptance                    |
+| `status`               | `ride_status`            | NO       | `'pending'`         | Full ride state machine (11 values)                        |
+| `pickup_address`       | `text`                   | NO       | —                   | Human-readable address                                     |
+| `pickup_lat`           | `numeric`                | NO       | —                   |                                                            |
+| `pickup_lng`           | `numeric`                | NO       | —                   |                                                            |
+| `pickup_place_id`      | `text`                   | YES      | —                   | Google Place ID                                            |
+| `pickup_note`          | `text`                   | YES      | —                   | Passenger instructions                                     |
+| `dropoff_address`      | `text`                   | NO       | —                   |                                                            |
+| `dropoff_lat`          | `numeric`                | NO       | —                   |                                                            |
+| `dropoff_lng`          | `numeric`                | NO       | —                   |                                                            |
+| `dropoff_place_id`     | `text`                   | YES      | —                   | Google Place ID                                            |
+| `distance_meters`      | `integer`                | YES      | —                   | CHECK: >= 0. Route distance from Directions API            |
+| `duration_seconds`     | `integer`                | YES      | —                   | CHECK: >= 0. Estimated trip duration                       |
 | `route_polyline`       | `text`                   | YES      | —                   | Nullified on INSERT; extracted to `ride_routes` by trigger |
-| `fare_type`            | `fare_type`              | YES      | —                   | `metered`, `input_fare`, or `estimated`    |
-| `estimated_fare`       | `numeric`                | YES      | —                   | CHECK: > 0. Pre-trip fare estimate         |
-| `final_fare`           | `numeric`                | YES      | —                   | CHECK: > 0. Actual fare = meter input + platform_fee |
-| `platform_fee`         | `numeric`                | YES      | —                   | Platform fee frozen at ride completion     |
-| `payment_method`       | `payment_method`         | YES      | —                   |                                            |
-| `commission_rate_id`   | `uuid`                   | YES      | —                   | FK → `commission_rates(id)`                |
-| `fare_rule_id`         | `uuid`                   | YES      | —                   | FK → `fare_rules(id)`                      |
-| `accepted_at`          | `timestamptz`            | YES      | —                   | When driver accepted                       |
-| `arrived_at_pickup_at` | `timestamptz`            | YES      | —                   | When driver arrived                        |
-| `trip_started_at`      | `timestamptz`            | YES      | —                   | When trip began                            |
-| `dropped_off_at`       | `timestamptz`            | YES      | —                   | When passenger was dropped off             |
-| `trip_completed_at`    | `timestamptz`            | YES      | —                   | When trip ended                            |
-| `cancelled_at`         | `timestamptz`            | YES      | —                   |                                            |
-| `cancelled_by`         | `cancellation_actor`     | YES      | —                   | `passenger`, `driver`, or `system`         |
-| `cancellation_reason`  | `text`                   | YES      | —                   | Free-text reason                           |
-| `created_at`           | `timestamptz`            | NO       | `now()`             |                                            |
-| `updated_at`           | `timestamptz`            | NO       | `now()`             |                                            |
-| `pickup_location`      | `geography(Point, 4326)` | YES      | GENERATED           | Computed from `pickup_lat`, `pickup_lng`   |
-| `dropoff_location`     | `geography(Point, 4326)` | YES      | GENERATED           | Computed from `dropoff_lat`, `dropoff_lng` |
+| `fare_type`            | `fare_type`              | YES      | —                   | `metered`, `input_fare`, or `estimated`                    |
+| `estimated_fare`       | `numeric`                | YES      | —                   | CHECK: > 0. Pre-trip fare estimate                         |
+| `final_fare`           | `numeric`                | YES      | —                   | CHECK: > 0. Actual fare = meter input + platform_fee       |
+| `platform_fee`         | `numeric`                | YES      | —                   | Platform fee frozen at ride completion                     |
+| `payment_method`       | `payment_method`         | YES      | —                   |                                                            |
+| `commission_rate_id`   | `uuid`                   | YES      | —                   | FK → `commission_rates(id)`                                |
+| `fare_rule_id`         | `uuid`                   | YES      | —                   | FK → `fare_rules(id)`                                      |
+| `accepted_at`          | `timestamptz`            | YES      | —                   | When driver accepted                                       |
+| `arrived_at_pickup_at` | `timestamptz`            | YES      | —                   | When driver arrived                                        |
+| `trip_started_at`      | `timestamptz`            | YES      | —                   | When trip began                                            |
+| `dropped_off_at`       | `timestamptz`            | YES      | —                   | When passenger was dropped off                             |
+| `trip_completed_at`    | `timestamptz`            | YES      | —                   | When trip ended                                            |
+| `cancelled_at`         | `timestamptz`            | YES      | —                   |                                                            |
+| `cancelled_by`         | `cancellation_actor`     | YES      | —                   | `passenger`, `driver`, or `system`                         |
+| `cancellation_reason`  | `text`                   | YES      | —                   | Free-text reason                                           |
+| `created_at`           | `timestamptz`            | NO       | `now()`             |                                                            |
+| `updated_at`           | `timestamptz`            | NO       | `now()`             |                                                            |
+| `pickup_location`      | `geography(Point, 4326)` | YES      | GENERATED           | Computed from `pickup_lat`, `pickup_lng`                   |
+| `dropoff_location`     | `geography(Point, 4326)` | YES      | GENERATED           | Computed from `dropoff_lat`, `dropoff_lng`                 |
 
 **Indexes:** `rides_pkey`, `rides_passenger_id_idx`, `rides_driver_id_idx`, `rides_vehicle_id_idx`, `rides_status_idx`, `rides_created_at_idx` (created_at DESC), `rides_pickup_location_idx` (GIST), `rides_pending_pickup_location_idx` (GIST on pickup_location WHERE status = 'pending')
 **Realtime:** YES — included in `supabase_realtime` publication
@@ -459,11 +459,11 @@ Append-only audit log. One row is written for every ride status transition. The 
 
 Stores route polylines extracted from `rides` on INSERT by a trigger pair. Keeps large polyline data out of the main `rides` row to reduce Realtime payload size. (0 rows)
 
-| Column       | Type          | Nullable | Default             | Notes                      |
-| ------------ | ------------- | -------- | ------------------- | -------------------------- |
-| `ride_id`    | `uuid`        | NO       | —                   | PK; FK → `rides(id)` ON DELETE CASCADE |
-| `polyline`   | `text`        | NO       | —                   | Encoded Google Maps polyline |
-| `created_at` | `timestamptz` | NO       | `now()`             |                            |
+| Column       | Type          | Nullable | Default | Notes                                  |
+| ------------ | ------------- | -------- | ------- | -------------------------------------- |
+| `ride_id`    | `uuid`        | NO       | —       | PK; FK → `rides(id)` ON DELETE CASCADE |
+| `polyline`   | `text`        | NO       | —       | Encoded Google Maps polyline           |
+| `created_at` | `timestamptz` | NO       | `now()` |                                        |
 
 **Indexes:** `ride_routes_pkey` (ride_id)
 
@@ -570,13 +570,13 @@ Persistent record of all notifications sent to users. The `data` JSONB field car
 
 Dedicated table for high-frequency driver position writes. Separated from `driver_profiles` to avoid write contention on a heavily-read table. (0 rows)
 
-| Column      | Type                     | Nullable | Default | Notes                                                |
-| ----------- | ------------------------ | -------- | ------- | ---------------------------------------------------- |
-| `driver_id` | `uuid`                   | NO       | —       | PK; FK → `driver_profiles(id)` ON DELETE CASCADE     |
-| `location`  | `geography(Point, 4326)` | NO       | —       | Current GPS position                                 |
-| `bearing`   | `numeric`                | YES      | —       | Heading in degrees                                   |
-| `speed_kmh` | `numeric`                | YES      | —       | Current speed in km/h                                |
-| `updated_at`| `timestamptz`            | NO       | `now()` |                                                      |
+| Column       | Type                     | Nullable | Default | Notes                                            |
+| ------------ | ------------------------ | -------- | ------- | ------------------------------------------------ |
+| `driver_id`  | `uuid`                   | NO       | —       | PK; FK → `driver_profiles(id)` ON DELETE CASCADE |
+| `location`   | `geography(Point, 4326)` | NO       | —       | Current GPS position                             |
+| `bearing`    | `numeric`                | YES      | —       | Heading in degrees                               |
+| `speed_kmh`  | `numeric`                | YES      | —       | Current speed in km/h                            |
+| `updated_at` | `timestamptz`            | NO       | `now()` |                                                  |
 
 **Indexes:** `driver_locations_pkey` (driver_id), `driver_locations_location_idx` (GIST on location)
 **Realtime:** YES
@@ -593,7 +593,7 @@ One earnings record per completed ride. Created automatically by the `on_ride_co
 | `driver_id`         | `uuid`          | NO       | —                   | FK → `driver_profiles(id)`                                |
 | `ride_id`           | `uuid`          | NO       | —                   | UNIQUE FK → `rides(id)`                                   |
 | `gross_amount`      | `numeric`       | NO       | —                   | Total fare amount (`final_fare`)                          |
-| `commission_rate`   | `numeric`       | NO       | —                   | CHECK: 0–1. Currently 0 (platform_fee model)             |
+| `commission_rate`   | `numeric`       | NO       | —                   | CHECK: 0–1. Currently 0 (platform_fee model)              |
 | `commission_amount` | `numeric`       | NO       | —                   | Equal to `platform_fee` from ride                         |
 | `net_amount`        | `numeric`       | NO       | —                   | `gross_amount − commission_amount`                        |
 | `payout_status`     | `payout_status` | NO       | `'pending'`         |                                                           |
@@ -667,15 +667,15 @@ Admin-configurable fare calculation rules per vehicle type. Uses temporal versio
 
 Admin-configurable platform fee. Only one row may be active at a time (enforced by partial unique index). (1 row)
 
-| Column       | Type          | Nullable | Default             | Notes                                  |
-| ------------ | ------------- | -------- | ------------------- | -------------------------------------- |
-| `id`         | `uuid`        | NO       | `gen_random_uuid()` | PK                                     |
-| `fee_amount` | `numeric`     | NO       | —                   | CHECK: >= 0                            |
-| `label`      | `text`        | NO       | `'Platform Fee'`    | Display label                          |
-| `is_active`  | `boolean`     | NO       | `false`             | Only one row can be active             |
-| `created_by` | `uuid`        | YES      | —                   | FK → `users(id)` — admin who created   |
-| `created_at` | `timestamptz` | NO       | `now()`             |                                        |
-| `updated_at` | `timestamptz` | NO       | `now()`             |                                        |
+| Column       | Type          | Nullable | Default             | Notes                                |
+| ------------ | ------------- | -------- | ------------------- | ------------------------------------ |
+| `id`         | `uuid`        | NO       | `gen_random_uuid()` | PK                                   |
+| `fee_amount` | `numeric`     | NO       | —                   | CHECK: >= 0                          |
+| `label`      | `text`        | NO       | `'Platform Fee'`    | Display label                        |
+| `is_active`  | `boolean`     | NO       | `false`             | Only one row can be active           |
+| `created_by` | `uuid`        | YES      | —                   | FK → `users(id)` — admin who created |
+| `created_at` | `timestamptz` | NO       | `now()`             |                                      |
+| `updated_at` | `timestamptz` | NO       | `now()`             |                                      |
 
 **Indexes:** `platform_fees_pkey`, `platform_fees_one_active` (UNIQUE on is_active WHERE is_active = true)
 
@@ -685,17 +685,17 @@ Admin-configurable platform fee. Only one row may be active at a time (enforced 
 
 Audit trail for admin operations with before/after JSONB snapshots. (0 rows)
 
-| Column       | Type          | Nullable | Default             | Notes                             |
-| ------------ | ------------- | -------- | ------------------- | --------------------------------- |
-| `id`         | `uuid`        | NO       | `gen_random_uuid()` | PK                                |
-| `admin_id`   | `uuid`        | NO       | —                   | FK → `users(id)`                  |
-| `action`     | `text`        | NO       | —                   | Action description                |
-| `table_name` | `text`        | NO       | —                   | Affected table                    |
-| `record_id`  | `uuid`        | NO       | —                   | Affected row ID                   |
-| `old_value`  | `jsonb`       | YES      | —                   | Before state                      |
-| `new_value`  | `jsonb`       | YES      | —                   | After state                       |
-| `ip_address` | `text`        | YES      | —                   | Caller IP                         |
-| `created_at` | `timestamptz` | NO       | `now()`             |                                   |
+| Column       | Type          | Nullable | Default             | Notes              |
+| ------------ | ------------- | -------- | ------------------- | ------------------ |
+| `id`         | `uuid`        | NO       | `gen_random_uuid()` | PK                 |
+| `admin_id`   | `uuid`        | NO       | —                   | FK → `users(id)`   |
+| `action`     | `text`        | NO       | —                   | Action description |
+| `table_name` | `text`        | NO       | —                   | Affected table     |
+| `record_id`  | `uuid`        | NO       | —                   | Affected row ID    |
+| `old_value`  | `jsonb`       | YES      | —                   | Before state       |
+| `new_value`  | `jsonb`       | YES      | —                   | After state        |
+| `ip_address` | `text`        | YES      | —                   | Caller IP          |
+| `created_at` | `timestamptz` | NO       | `now()`             |                    |
 
 **Indexes:** `admin_audit_log_pkey`, `admin_audit_log_admin_id_idx`, `admin_audit_log_created_at_idx` (created_at DESC), `admin_audit_log_table_record_idx` (table_name, record_id)
 
@@ -705,119 +705,125 @@ Audit trail for admin operations with before/after JSONB snapshots. (0 rows)
 
 ### Complete Index Inventory
 
-| Table                 | Index Name                                         | Type         | Columns                              | Partial?                                                 |
-| --------------------- | -------------------------------------------------- | ------------ | ------------------------------------ | -------------------------------------------------------- |
-| `admin_audit_log`     | `admin_audit_log_pkey`                             | BTREE UNIQUE | `id`                                 | —                                                        |
-| `admin_audit_log`     | `admin_audit_log_admin_id_idx`                     | BTREE        | `admin_id`                           | —                                                        |
-| `admin_audit_log`     | `admin_audit_log_created_at_idx`                   | BTREE        | `created_at DESC`                    | —                                                        |
-| `admin_audit_log`     | `admin_audit_log_table_record_idx`                 | BTREE        | `(table_name, record_id)`            | —                                                        |
-| `commission_rates`    | `commission_rates_pkey`                            | BTREE UNIQUE | `id`                                 | —                                                        |
-| `commission_rates`    | `commission_rates_vehicle_type_effective_idx`       | BTREE        | `(vehicle_type, effective_from DESC)` | —                                                        |
-| `conversations`       | `conversations_pkey`                               | BTREE UNIQUE | `id`                                 | —                                                        |
-| `conversations`       | `conversations_passenger_id_idx`                   | BTREE        | `passenger_id`                       | —                                                        |
-| `conversations`       | `conversations_driver_id_idx`                      | BTREE        | `driver_id`                          | —                                                        |
-| `conversations`       | `conversations_ride_id_key`                        | BTREE UNIQUE | `ride_id`                            | —                                                        |
-| `conversations`       | `conversations_passenger_id_driver_id_ride_id_key` | BTREE UNIQUE | `(passenger_id, driver_id, ride_id)` | —                                                        |
-| `driver_documents`    | `driver_documents_pkey`                            | BTREE UNIQUE | `id`                                 | —                                                        |
-| `driver_documents`    | `driver_documents_driver_id_idx`                   | BTREE        | `driver_id`                          | —                                                        |
-| `driver_documents`    | `driver_documents_verified_by_idx`                 | BTREE        | `verified_by`                        | —                                                        |
-| `driver_earnings`     | `driver_earnings_pkey`                             | BTREE UNIQUE | `id`                                 | —                                                        |
-| `driver_earnings`     | `driver_earnings_ride_id_key`                      | BTREE UNIQUE | `ride_id`                            | —                                                        |
-| `driver_earnings`     | `driver_earnings_driver_id_idx`                    | BTREE        | `driver_id`                          | —                                                        |
-| `driver_earnings`     | `driver_earnings_payout_status_idx`                | BTREE        | `payout_status`                      | —                                                        |
-| `driver_earnings`     | `driver_earnings_payout_id_idx`                    | BTREE        | `payout_id`                          | —                                                        |
-| `driver_locations`    | `driver_locations_pkey`                            | BTREE UNIQUE | `driver_id`                          | —                                                        |
-| `driver_locations`    | `driver_locations_location_idx`                    | GIST         | `location`                           | —                                                        |
-| `driver_payouts`      | `driver_payouts_pkey`                              | BTREE UNIQUE | `id`                                 | —                                                        |
-| `driver_payouts`      | `driver_payouts_driver_id_idx`                     | BTREE        | `driver_id`                          | —                                                        |
-| `driver_payouts`      | `driver_payouts_status_idx`                        | BTREE        | `status`                             | —                                                        |
-| `driver_payouts`      | `driver_payouts_processed_by_idx`                  | BTREE        | `processed_by`                       | —                                                        |
-| `driver_profiles`     | `driver_profiles_pkey`                             | BTREE UNIQUE | `id`                                 | —                                                        |
-| `driver_profiles`     | `driver_profiles_user_id_key`                      | BTREE UNIQUE | `user_id`                            | —                                                        |
-| `driver_profiles`     | `driver_profiles_location_idx`                     | GIST         | `current_location`                   | —                                                        |
-| `driver_profiles`     | `driver_profiles_approved_by_idx`                  | BTREE        | `approved_by`                        | —                                                        |
-| `driver_profiles`     | `driver_profiles_online_approved_idx`              | BTREE        | `user_id`                            | `WHERE is_online = true AND verification_status = 'approved'` |
-| `fare_rules`          | `fare_rules_pkey`                                  | BTREE UNIQUE | `id`                                 | —                                                        |
-| `fare_rules`          | `fare_rules_vehicle_type_effective_idx`             | BTREE        | `(vehicle_type, effective_from DESC)` | —                                                        |
-| `job_alerts`          | `job_alerts_pkey`                                  | BTREE UNIQUE | `id`                                 | —                                                        |
-| `job_alerts`          | `job_alerts_driver_id_idx`                         | BTREE        | `driver_id`                          | —                                                        |
-| `job_alerts`          | `job_alerts_active_driver_idx`                     | BTREE        | `driver_id`                          | `WHERE deleted_at IS NULL AND is_active = true`          |
-| `messages`            | `messages_pkey`                                    | BTREE UNIQUE | `id`                                 | —                                                        |
-| `messages`            | `messages_conversation_id_idx`                     | BTREE        | `conversation_id`                    | —                                                        |
-| `messages`            | `messages_created_at_idx`                          | BTREE        | `created_at`                         | —                                                        |
-| `messages`            | `messages_sender_id_idx`                           | BTREE        | `sender_id`                          | —                                                        |
-| `notifications`       | `notifications_pkey`                               | BTREE UNIQUE | `id`                                 | —                                                        |
-| `notifications`       | `notifications_user_id_idx`                        | BTREE        | `user_id`                            | —                                                        |
-| `notifications`       | `notifications_read_at_idx`                        | BTREE        | `(user_id, read_at)`                 | `WHERE read_at IS NULL`                                  |
-| `passenger_profiles`  | `passenger_profiles_pkey`                          | BTREE UNIQUE | `id`                                 | —                                                        |
-| `passenger_profiles`  | `passenger_profiles_user_id_key`                   | BTREE UNIQUE | `user_id`                            | —                                                        |
-| `platform_fees`       | `platform_fees_pkey`                               | BTREE UNIQUE | `id`                                 | —                                                        |
-| `platform_fees`       | `platform_fees_one_active`                         | BTREE UNIQUE | `is_active`                          | `WHERE is_active = true`                                 |
-| `ride_ratings`        | `ride_ratings_pkey`                                | BTREE UNIQUE | `id`                                 | —                                                        |
-| `ride_ratings`        | `ride_ratings_ride_id_rater_id_key`                | BTREE UNIQUE | `(ride_id, rater_id)`                | —                                                        |
-| `ride_ratings`        | `ride_ratings_ratee_id_idx`                        | BTREE        | `ratee_id`                           | —                                                        |
-| `ride_ratings`        | `ride_ratings_rater_id_idx`                        | BTREE        | `rater_id`                           | —                                                        |
-| `ride_routes`         | `ride_routes_pkey`                                 | BTREE UNIQUE | `ride_id`                            | —                                                        |
-| `ride_status_history` | `ride_status_history_pkey`                         | BTREE UNIQUE | `id`                                 | —                                                        |
-| `ride_status_history` | `ride_status_history_ride_id_idx`                  | BTREE        | `ride_id`                            | —                                                        |
-| `ride_status_history` | `ride_status_history_changed_at_idx`               | BTREE        | `changed_at DESC`                    | —                                                        |
-| `ride_status_history` | `ride_status_history_changed_by_idx`               | BTREE        | `changed_by`                         | —                                                        |
-| `rides`               | `rides_pkey`                                       | BTREE UNIQUE | `id`                                 | —                                                        |
-| `rides`               | `rides_passenger_id_idx`                           | BTREE        | `passenger_id`                       | —                                                        |
-| `rides`               | `rides_driver_id_idx`                              | BTREE        | `driver_id`                          | —                                                        |
-| `rides`               | `rides_vehicle_id_idx`                             | BTREE        | `vehicle_id`                         | —                                                        |
-| `rides`               | `rides_status_idx`                                 | BTREE        | `status`                             | —                                                        |
-| `rides`               | `rides_created_at_idx`                             | BTREE        | `created_at DESC`                    | —                                                        |
-| `rides`               | `rides_pickup_location_idx`                        | GIST         | `pickup_location`                    | —                                                        |
-| `rides`               | `rides_pending_pickup_location_idx`                | GIST         | `pickup_location`                    | `WHERE status = 'pending'`                               |
-| `users`               | `users_pkey`                                       | BTREE UNIQUE | `id`                                 | —                                                        |
-| `users`               | `users_email_key`                                  | BTREE UNIQUE | `email`                              | —                                                        |
-| `users`               | `users_phone_key`                                  | BTREE UNIQUE | `phone`                              | —                                                        |
-| `vehicles`            | `vehicles_pkey`                                    | BTREE UNIQUE | `id`                                 | —                                                        |
-| `vehicles`            | `vehicles_plate_number_key`                        | BTREE UNIQUE | `plate_number`                       | —                                                        |
-| `vehicles`            | `vehicles_one_active_per_driver`                   | BTREE UNIQUE | `driver_id`                          | `WHERE is_active = true`                                 |
+| Table                 | Index Name                                         | Type         | Columns                               | Partial?                                                      |
+| --------------------- | -------------------------------------------------- | ------------ | ------------------------------------- | ------------------------------------------------------------- |
+| `admin_audit_log`     | `admin_audit_log_pkey`                             | BTREE UNIQUE | `id`                                  | —                                                             |
+| `admin_audit_log`     | `admin_audit_log_admin_id_idx`                     | BTREE        | `admin_id`                            | —                                                             |
+| `admin_audit_log`     | `admin_audit_log_created_at_idx`                   | BTREE        | `created_at DESC`                     | —                                                             |
+| `admin_audit_log`     | `admin_audit_log_table_record_idx`                 | BTREE        | `(table_name, record_id)`             | —                                                             |
+| `commission_rates`    | `commission_rates_pkey`                            | BTREE UNIQUE | `id`                                  | —                                                             |
+| `commission_rates`    | `commission_rates_created_by_idx`                  | BTREE        | `created_by`                          | —                                                             |
+| `commission_rates`    | `commission_rates_vehicle_type_effective_idx`      | BTREE        | `(vehicle_type, effective_from DESC)` | —                                                             |
+| `conversations`       | `conversations_pkey`                               | BTREE UNIQUE | `id`                                  | —                                                             |
+| `conversations`       | `conversations_passenger_id_idx`                   | BTREE        | `passenger_id`                        | —                                                             |
+| `conversations`       | `conversations_driver_id_idx`                      | BTREE        | `driver_id`                           | —                                                             |
+| `conversations`       | `conversations_ride_id_key`                        | BTREE UNIQUE | `ride_id`                             | —                                                             |
+| `conversations`       | `conversations_passenger_id_driver_id_ride_id_key` | BTREE UNIQUE | `(passenger_id, driver_id, ride_id)`  | —                                                             |
+| `driver_documents`    | `driver_documents_pkey`                            | BTREE UNIQUE | `id`                                  | —                                                             |
+| `driver_documents`    | `driver_documents_driver_id_idx`                   | BTREE        | `driver_id`                           | —                                                             |
+| `driver_documents`    | `driver_documents_verified_by_idx`                 | BTREE        | `verified_by`                         | —                                                             |
+| `driver_earnings`     | `driver_earnings_pkey`                             | BTREE UNIQUE | `id`                                  | —                                                             |
+| `driver_earnings`     | `driver_earnings_ride_id_key`                      | BTREE UNIQUE | `ride_id`                             | —                                                             |
+| `driver_earnings`     | `driver_earnings_driver_id_idx`                    | BTREE        | `driver_id`                           | —                                                             |
+| `driver_earnings`     | `driver_earnings_payout_status_idx`                | BTREE        | `payout_status`                       | —                                                             |
+| `driver_earnings`     | `driver_earnings_payout_id_idx`                    | BTREE        | `payout_id`                           | —                                                             |
+| `driver_locations`    | `driver_locations_pkey`                            | BTREE UNIQUE | `driver_id`                           | —                                                             |
+| `driver_locations`    | `driver_locations_location_idx`                    | GIST         | `location`                            | —                                                             |
+| `driver_payouts`      | `driver_payouts_pkey`                              | BTREE UNIQUE | `id`                                  | —                                                             |
+| `driver_payouts`      | `driver_payouts_driver_id_idx`                     | BTREE        | `driver_id`                           | —                                                             |
+| `driver_payouts`      | `driver_payouts_status_idx`                        | BTREE        | `status`                              | —                                                             |
+| `driver_payouts`      | `driver_payouts_processed_by_idx`                  | BTREE        | `processed_by`                        | —                                                             |
+| `driver_profiles`     | `driver_profiles_pkey`                             | BTREE UNIQUE | `id`                                  | —                                                             |
+| `driver_profiles`     | `driver_profiles_user_id_key`                      | BTREE UNIQUE | `user_id`                             | —                                                             |
+| `driver_profiles`     | `driver_profiles_location_idx`                     | GIST         | `current_location`                    | —                                                             |
+| `driver_profiles`     | `driver_profiles_approved_by_idx`                  | BTREE        | `approved_by`                         | —                                                             |
+| `driver_profiles`     | `driver_profiles_online_approved_idx`              | BTREE        | `user_id`                             | `WHERE is_online = true AND verification_status = 'approved'` |
+| `fare_rules`          | `fare_rules_pkey`                                  | BTREE UNIQUE | `id`                                  | —                                                             |
+| `fare_rules`          | `fare_rules_created_by_idx`                        | BTREE        | `created_by`                          | —                                                             |
+| `fare_config`         | `fare_config_updated_by_idx`                       | BTREE        | `updated_by`                          | —                                                             |
+| `fare_rules`          | `fare_rules_vehicle_type_effective_idx`            | BTREE        | `(vehicle_type, effective_from DESC)` | —                                                             |
+| `job_alerts`          | `job_alerts_pkey`                                  | BTREE UNIQUE | `id`                                  | —                                                             |
+| `job_alerts`          | `job_alerts_driver_id_idx`                         | BTREE        | `driver_id`                           | —                                                             |
+| `job_alerts`          | `job_alerts_active_driver_idx`                     | BTREE        | `driver_id`                           | `WHERE deleted_at IS NULL AND is_active = true`               |
+| `messages`            | `messages_pkey`                                    | BTREE UNIQUE | `id`                                  | —                                                             |
+| `messages`            | `messages_conversation_id_idx`                     | BTREE        | `conversation_id`                     | —                                                             |
+| `messages`            | `messages_created_at_idx`                          | BTREE        | `created_at`                          | —                                                             |
+| `messages`            | `messages_sender_id_idx`                           | BTREE        | `sender_id`                           | —                                                             |
+| `notifications`       | `notifications_pkey`                               | BTREE UNIQUE | `id`                                  | —                                                             |
+| `notifications`       | `notifications_user_id_idx`                        | BTREE        | `user_id`                             | —                                                             |
+| `notifications`       | `notifications_read_at_idx`                        | BTREE        | `(user_id, read_at)`                  | `WHERE read_at IS NULL`                                       |
+| `passenger_profiles`  | `passenger_profiles_pkey`                          | BTREE UNIQUE | `id`                                  | —                                                             |
+| `passenger_profiles`  | `passenger_profiles_user_id_key`                   | BTREE UNIQUE | `user_id`                             | —                                                             |
+| `platform_fees`       | `platform_fees_pkey`                               | BTREE UNIQUE | `id`                                  | —                                                             |
+| `platform_fees`       | `platform_fees_created_by_idx`                     | BTREE        | `created_by`                          | —                                                             |
+| `platform_fees`       | `platform_fees_one_active`                         | BTREE UNIQUE | `is_active`                           | `WHERE is_active = true`                                      |
+| `ride_ratings`        | `ride_ratings_pkey`                                | BTREE UNIQUE | `id`                                  | —                                                             |
+| `ride_ratings`        | `ride_ratings_ride_id_rater_id_key`                | BTREE UNIQUE | `(ride_id, rater_id)`                 | —                                                             |
+| `ride_ratings`        | `ride_ratings_ratee_id_idx`                        | BTREE        | `ratee_id`                            | —                                                             |
+| `ride_ratings`        | `ride_ratings_rater_id_idx`                        | BTREE        | `rater_id`                            | —                                                             |
+| `ride_routes`         | `ride_routes_pkey`                                 | BTREE UNIQUE | `ride_id`                             | —                                                             |
+| `ride_status_history` | `ride_status_history_pkey`                         | BTREE UNIQUE | `id`                                  | —                                                             |
+| `ride_status_history` | `ride_status_history_ride_id_idx`                  | BTREE        | `ride_id`                             | —                                                             |
+| `ride_status_history` | `ride_status_history_changed_at_idx`               | BTREE        | `changed_at DESC`                     | —                                                             |
+| `ride_status_history` | `ride_status_history_changed_by_idx`               | BTREE        | `changed_by`                          | —                                                             |
+| `rides`               | `rides_pkey`                                       | BTREE UNIQUE | `id`                                  | —                                                             |
+| `rides`               | `rides_passenger_id_idx`                           | BTREE        | `passenger_id`                        | —                                                             |
+| `rides`               | `rides_driver_id_idx`                              | BTREE        | `driver_id`                           | —                                                             |
+| `rides`               | `rides_vehicle_id_idx`                             | BTREE        | `vehicle_id`                          | —                                                             |
+| `rides`               | `rides_status_idx`                                 | BTREE        | `status`                              | —                                                             |
+| `rides`               | `rides_created_at_idx`                             | BTREE        | `created_at DESC`                     | —                                                             |
+| `rides`               | `rides_pickup_location_idx`                        | GIST         | `pickup_location`                     | —                                                             |
+| `rides`               | `rides_commission_rate_id_idx`                     | BTREE        | `commission_rate_id`                  | —                                                             |
+| `rides`               | `rides_fare_rule_id_idx`                           | BTREE        | `fare_rule_id`                        | —                                                             |
+| `rides`               | `rides_pending_pickup_location_idx`                | GIST         | `pickup_location`                     | `WHERE status = 'pending'`                                    |
+| `users`               | `users_pkey`                                       | BTREE UNIQUE | `id`                                  | —                                                             |
+| `users`               | `users_email_key`                                  | BTREE UNIQUE | `email`                               | —                                                             |
+| `users`               | `users_phone_key`                                  | BTREE UNIQUE | `phone`                               | —                                                             |
+| `vehicles`            | `vehicles_pkey`                                    | BTREE UNIQUE | `id`                                  | —                                                             |
+| `vehicles`            | `vehicles_plate_number_key`                        | BTREE UNIQUE | `plate_number`                        | —                                                             |
+| `vehicles`            | `vehicles_one_active_per_driver`                   | BTREE UNIQUE | `driver_id`                           | `WHERE is_active = true`                                      |
 
 ---
 
 ## 8. Foreign Key Constraints
 
-| Constraint                            | Source                           | Target                 | On Delete |
-| ------------------------------------- | -------------------------------- | ---------------------- | --------- |
-| `users_id_fkey`                       | `users.id`                       | `auth.users.id`        | CASCADE   |
-| `driver_profiles_user_id_fkey`        | `driver_profiles.user_id`        | `users.id`             | CASCADE   |
-| `driver_profiles_approved_by_fkey`    | `driver_profiles.approved_by`    | `users.id`             | RESTRICT  |
-| `passenger_profiles_user_id_fkey`     | `passenger_profiles.user_id`     | `users.id`             | CASCADE   |
-| `vehicles_driver_id_fkey`             | `vehicles.driver_id`             | `driver_profiles.id`   | CASCADE   |
-| `driver_documents_driver_id_fkey`     | `driver_documents.driver_id`     | `driver_profiles.id`   | CASCADE   |
-| `driver_documents_verified_by_fkey`   | `driver_documents.verified_by`   | `users.id`             | RESTRICT  |
-| `rides_passenger_id_fkey`             | `rides.passenger_id`             | `users.id`             | RESTRICT  |
-| `rides_driver_id_fkey`                | `rides.driver_id`                | `users.id`             | RESTRICT  |
-| `rides_vehicle_id_fkey`               | `rides.vehicle_id`               | `vehicles.id`          | RESTRICT  |
-| `rides_commission_rate_id_fkey`       | `rides.commission_rate_id`       | `commission_rates.id`  | —         |
-| `rides_fare_rule_id_fkey`             | `rides.fare_rule_id`             | `fare_rules.id`        | —         |
-| `ride_status_history_ride_id_fkey`    | `ride_status_history.ride_id`    | `rides.id`             | CASCADE   |
-| `ride_status_history_changed_by_fkey` | `ride_status_history.changed_by` | `users.id`             | RESTRICT  |
-| `ride_routes_ride_id_fkey`            | `ride_routes.ride_id`            | `rides.id`             | CASCADE   |
-| `job_alerts_driver_id_fkey`           | `job_alerts.driver_id`           | `driver_profiles.id`   | CASCADE   |
-| `ride_ratings_ride_id_fkey`           | `ride_ratings.ride_id`           | `rides.id`             | CASCADE   |
-| `ride_ratings_rater_id_fkey`          | `ride_ratings.rater_id`          | `users.id`             | RESTRICT  |
-| `ride_ratings_ratee_id_fkey`          | `ride_ratings.ratee_id`          | `users.id`             | RESTRICT  |
-| `conversations_ride_id_fkey`          | `conversations.ride_id`          | `rides.id`             | RESTRICT  |
-| `conversations_passenger_id_fkey`     | `conversations.passenger_id`     | `users.id`             | RESTRICT  |
-| `conversations_driver_id_fkey`        | `conversations.driver_id`        | `users.id`             | RESTRICT  |
-| `messages_conversation_id_fkey`       | `messages.conversation_id`       | `conversations.id`     | CASCADE   |
-| `messages_sender_id_fkey`             | `messages.sender_id`             | `users.id`             | RESTRICT  |
-| `notifications_user_id_fkey`          | `notifications.user_id`          | `users.id`             | CASCADE   |
-| `driver_locations_driver_id_fkey`     | `driver_locations.driver_id`     | `driver_profiles.id`   | CASCADE   |
-| `driver_payouts_driver_id_fkey`       | `driver_payouts.driver_id`       | `driver_profiles.id`   | RESTRICT  |
-| `driver_payouts_processed_by_fkey`    | `driver_payouts.processed_by`    | `users.id`             | RESTRICT  |
-| `driver_earnings_driver_id_fkey`      | `driver_earnings.driver_id`      | `driver_profiles.id`   | RESTRICT  |
-| `driver_earnings_ride_id_fkey`        | `driver_earnings.ride_id`        | `rides.id`             | RESTRICT  |
-| `driver_earnings_payout_id_fkey`      | `driver_earnings.payout_id`      | `driver_payouts.id`    | RESTRICT  |
-| `commission_rates_created_by_fkey`    | `commission_rates.created_by`    | `users.id`             | —         |
-| `fare_rules_created_by_fkey`          | `fare_rules.created_by`          | `users.id`             | —         |
-| `platform_fees_created_by_fkey`       | `platform_fees.created_by`       | `users.id`             | —         |
-| `admin_audit_log_admin_id_fkey`       | `admin_audit_log.admin_id`       | `users.id`             | —         |
+| Constraint                            | Source                           | Target                | On Delete |
+| ------------------------------------- | -------------------------------- | --------------------- | --------- |
+| `users_id_fkey`                       | `users.id`                       | `auth.users.id`       | CASCADE   |
+| `driver_profiles_user_id_fkey`        | `driver_profiles.user_id`        | `users.id`            | CASCADE   |
+| `driver_profiles_approved_by_fkey`    | `driver_profiles.approved_by`    | `users.id`            | RESTRICT  |
+| `passenger_profiles_user_id_fkey`     | `passenger_profiles.user_id`     | `users.id`            | CASCADE   |
+| `vehicles_driver_id_fkey`             | `vehicles.driver_id`             | `driver_profiles.id`  | CASCADE   |
+| `driver_documents_driver_id_fkey`     | `driver_documents.driver_id`     | `driver_profiles.id`  | CASCADE   |
+| `driver_documents_verified_by_fkey`   | `driver_documents.verified_by`   | `users.id`            | RESTRICT  |
+| `rides_passenger_id_fkey`             | `rides.passenger_id`             | `users.id`            | RESTRICT  |
+| `rides_driver_id_fkey`                | `rides.driver_id`                | `users.id`            | RESTRICT  |
+| `rides_vehicle_id_fkey`               | `rides.vehicle_id`               | `vehicles.id`         | RESTRICT  |
+| `rides_commission_rate_id_fkey`       | `rides.commission_rate_id`       | `commission_rates.id` | —         |
+| `rides_fare_rule_id_fkey`             | `rides.fare_rule_id`             | `fare_rules.id`       | —         |
+| `ride_status_history_ride_id_fkey`    | `ride_status_history.ride_id`    | `rides.id`            | CASCADE   |
+| `ride_status_history_changed_by_fkey` | `ride_status_history.changed_by` | `users.id`            | RESTRICT  |
+| `ride_routes_ride_id_fkey`            | `ride_routes.ride_id`            | `rides.id`            | CASCADE   |
+| `job_alerts_driver_id_fkey`           | `job_alerts.driver_id`           | `driver_profiles.id`  | CASCADE   |
+| `ride_ratings_ride_id_fkey`           | `ride_ratings.ride_id`           | `rides.id`            | CASCADE   |
+| `ride_ratings_rater_id_fkey`          | `ride_ratings.rater_id`          | `users.id`            | RESTRICT  |
+| `ride_ratings_ratee_id_fkey`          | `ride_ratings.ratee_id`          | `users.id`            | RESTRICT  |
+| `conversations_ride_id_fkey`          | `conversations.ride_id`          | `rides.id`            | RESTRICT  |
+| `conversations_passenger_id_fkey`     | `conversations.passenger_id`     | `users.id`            | RESTRICT  |
+| `conversations_driver_id_fkey`        | `conversations.driver_id`        | `users.id`            | RESTRICT  |
+| `messages_conversation_id_fkey`       | `messages.conversation_id`       | `conversations.id`    | CASCADE   |
+| `messages_sender_id_fkey`             | `messages.sender_id`             | `users.id`            | RESTRICT  |
+| `notifications_user_id_fkey`          | `notifications.user_id`          | `users.id`            | CASCADE   |
+| `driver_locations_driver_id_fkey`     | `driver_locations.driver_id`     | `driver_profiles.id`  | CASCADE   |
+| `driver_payouts_driver_id_fkey`       | `driver_payouts.driver_id`       | `driver_profiles.id`  | RESTRICT  |
+| `driver_payouts_processed_by_fkey`    | `driver_payouts.processed_by`    | `users.id`            | RESTRICT  |
+| `driver_earnings_driver_id_fkey`      | `driver_earnings.driver_id`      | `driver_profiles.id`  | RESTRICT  |
+| `driver_earnings_ride_id_fkey`        | `driver_earnings.ride_id`        | `rides.id`            | RESTRICT  |
+| `driver_earnings_payout_id_fkey`      | `driver_earnings.payout_id`      | `driver_payouts.id`   | RESTRICT  |
+| `commission_rates_created_by_fkey`    | `commission_rates.created_by`    | `users.id`            | —         |
+| `fare_rules_created_by_fkey`          | `fare_rules.created_by`          | `users.id`            | —         |
+| `platform_fees_created_by_fkey`       | `platform_fees.created_by`       | `users.id`            | —         |
+| `admin_audit_log_admin_id_fkey`       | `admin_audit_log.admin_id`       | `users.id`            | —         |
 
 ---
 
@@ -836,7 +842,7 @@ Checks if the currently authenticated user has the `admin` role. Used as the gua
 ```sql
 SELECT EXISTS (
   SELECT 1 FROM public.users
-  WHERE id = auth.uid() AND role = 'admin'
+  WHERE id = (SELECT auth.uid()) AND role = 'admin'
 );
 ```
 
@@ -853,7 +859,7 @@ Checks if the currently authenticated user is a driver who is both `approved` an
 ```sql
 SELECT EXISTS (
   SELECT 1 FROM driver_profiles dp
-  WHERE dp.user_id = auth.uid()
+  WHERE dp.user_id = (SELECT auth.uid())
     AND dp.verification_status = 'approved'
     AND dp.is_online = true
 );
@@ -1020,132 +1026,107 @@ Reads the stashed polyline from the session variable and inserts it into `ride_r
 
 ## 11. Row Level Security (RLS)
 
-RLS is enabled on all 20 public tables. All policies use `PERMISSIVE` mode (Postgres ORs permissive policies together).
+RLS is enabled on all 22 public tables. All policies use `PERMISSIVE` mode. **Each table has one policy per action** (SELECT/INSERT/UPDATE/DELETE) to avoid per-row evaluation overhead from multiple permissive policies. All policies target the `authenticated` role — no policies grant access to `anon` (unauthenticated) users.
 
-Two SECURITY DEFINER helper functions — `is_admin()` and `is_approved_online_driver()` — serve as role gates across many policies.
-
----
-
-### `users` — 8 Policies
-
-| Policy                                  | Operation | Roles         | Condition                                      |
-| --------------------------------------- | --------- | ------------- | ---------------------------------------------- |
-| `users_insert_service`                  | INSERT    | public        | `id = (SELECT auth.uid())`                     |
-| `users_select_own`                      | SELECT    | public        | `id = (SELECT auth.uid())`                     |
-| `users_select_admin`                    | SELECT    | public        | `is_admin()`                                   |
-| `users_select_driver_for_active_ride`   | SELECT    | authenticated | Driver has active ride with this passenger     |
-| `users_select_passenger_for_driver_ride`| SELECT    | authenticated | Passenger has ride with this driver            |
-| `users_select_passenger_for_pending_rides` | SELECT | authenticated | User is passenger of a pending ride            |
-| `users_update_own`                      | UPDATE    | public        | `id = (SELECT auth.uid())`                     |
-| `users_update_admin`                    | UPDATE    | public        | `is_admin()`                                   |
+Helper functions used in policies:
+- **Role gates:** `is_admin()`, `is_approved_online_driver()` — SECURITY DEFINER, called in many policies
+- **Membership checks:** `is_conversation_member(conversation_id)`, `is_conversation_participant_with(user_id)`, `is_driver_for_passenger(user_id)`, `is_passenger_for_driver(user_id)` — SECURITY DEFINER, check relationship between current user and a resource
+- **Frozen-field helpers:** `get_ride_frozen_fields`, `get_user_frozen_fields`, `get_driver_profile_frozen_fields`, `get_passenger_profile_frozen_fields`, `get_vehicle_is_verified` — SECURITY DEFINER, break RLS recursion in WITH CHECK constraints
 
 ---
 
-### `driver_profiles` — 5 Policies (INSERT restricted)
+### `users` — 3 Policies
 
-| Policy                                         | Operation | Condition                                  |
-| ---------------------------------------------- | --------- | ------------------------------------------ |
-| `driver_profiles_select_own`                   | SELECT    | `user_id = (SELECT auth.uid())`            |
-| `driver_profiles_select_admin`                 | SELECT    | `is_admin()`                               |
-| `driver_profiles_select_passenger_active_ride` | SELECT    | Passenger has active ride with this driver  |
-| `driver_profiles_update_own`                   | UPDATE    | `user_id = (SELECT auth.uid())`            |
-| `driver_profiles_update_admin`                 | UPDATE    | `is_admin()`                               |
+| Policy               | Operation | Condition                                                                                                                                          |
+| -------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users_insert_service` | INSERT  | `id = (SELECT auth.uid())`                                                                                                                         |
+| `users_select`       | SELECT    | Own OR admin OR conversation participant OR passenger-for-driver OR driver-for-passenger OR passenger of a pending ride                             |
+| `users_update`       | UPDATE    | USING: admin OR own / WITH CHECK: admin OR (own AND frozen `role`, `is_active`)                                                                    |
+
+---
+
+### `driver_profiles` — 2 Policies (INSERT restricted)
+
+| Policy                   | Operation | Condition                                                                                                                   |
+| ------------------------ | --------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `driver_profiles_select` | SELECT    | Own OR admin OR passenger with active ride                                                                                  |
+| `driver_profiles_update` | UPDATE    | USING: admin OR own / WITH CHECK: admin OR (own AND frozen `verification_status`, `approved_at`, `approved_by`, `avg_rating`, `rating_count`, `total_rides`) |
 
 **INSERT:** No RLS policy. Driver profiles are created **only** by the `handle_new_auth_user` trigger.
 
 ---
 
-### `passenger_profiles` — 5 Policies
+### `passenger_profiles` — 3 Policies
 
-| Policy                                         | Operation | Condition                                  |
-| ---------------------------------------------- | --------- | ------------------------------------------ |
-| `passenger_profiles_insert_own`                | INSERT    | `user_id = (SELECT auth.uid())`            |
-| `passenger_profiles_select_own`                | SELECT    | `user_id = (SELECT auth.uid())`            |
-| `passenger_profiles_select_admin`              | SELECT    | `is_admin()`                               |
-| `passenger_profiles_select_driver_active_ride` | SELECT    | Driver has active ride with this passenger  |
-| `passenger_profiles_update_own`                | UPDATE    | `user_id = (SELECT auth.uid())`            |
+| Policy                       | Operation | Condition                                                                                        |
+| ---------------------------- | --------- | ------------------------------------------------------------------------------------------------ |
+| `passenger_profiles_insert_own` | INSERT | `user_id = (SELECT auth.uid())`                                                                  |
+| `passenger_profiles_select`  | SELECT    | Own OR admin OR driver with active ride                                                          |
+| `passenger_profiles_update_own` | UPDATE | `user_id = (SELECT auth.uid())` / WITH CHECK freezes `avg_rating`, `rating_count`, `total_rides` |
 
 ---
 
-### `vehicles` — 6 Policies (INSERT restricted)
+### `vehicles` — 2 Policies (INSERT restricted)
 
-| Policy                                    | Operation | Condition                                            |
-| ----------------------------------------- | --------- | ---------------------------------------------------- |
-| `vehicles_select_own_driver`              | SELECT    | Driver owns the driver_profile                       |
-| `vehicles_select_admin`                   | SELECT    | `is_admin()`                                         |
-| `vehicles_select_passenger_active_ride`   | SELECT    | Passenger has active ride with this vehicle           |
-| `vehicles_select_passenger_driver_ride`   | SELECT    | Passenger has accepted/active ride with this driver's vehicle |
-| `vehicles_update_own_driver`              | UPDATE    | Driver owns the driver_profile                       |
-| `vehicles_update_admin`                   | UPDATE    | `is_admin()`                                         |
+| Policy            | Operation | Condition                                                                                          |
+| ----------------- | --------- | -------------------------------------------------------------------------------------------------- |
+| `vehicles_select` | SELECT    | Admin OR own driver OR passenger with active ride OR passenger with accepted/active driver ride     |
+| `vehicles_update` | UPDATE    | USING: admin OR own driver / WITH CHECK: admin OR (own AND frozen `is_verified`)                   |
 
 ---
 
-### `driver_documents` — 3 Policies (INSERT restricted)
+### `driver_documents` — 2 Policies (INSERT restricted)
 
-| Policy                          | Operation | Condition                      |
-| ------------------------------- | --------- | ------------------------------ |
-| `driver_documents_select_own`   | SELECT    | Driver owns the driver_profile |
-| `driver_documents_select_admin` | SELECT    | `is_admin()`                   |
-| `driver_documents_update_admin` | UPDATE    | `is_admin()`                   |
-
----
-
-### `rides` — 9 Policies
-
-| Policy                        | Operation | Roles         | USING Condition                                                           | WITH CHECK                  |
-| ----------------------------- | --------- | ------------- | ------------------------------------------------------------------------- | --------------------------- |
-| `rides_insert_passenger`      | INSERT    | public        | —                                                                         | `passenger_id = auth.uid()` |
-| `rides_select_passenger`      | SELECT    | public        | `passenger_id = (SELECT auth.uid())`                                      | —                           |
-| `rides_select_driver_own`     | SELECT    | public        | `driver_id = (SELECT auth.uid())`                                         | —                           |
-| `Drivers can view their own rides` | SELECT | authenticated | `driver_id = auth.uid()`                                                  | —                           |
-| `rides_select_driver_pending` | SELECT    | public        | `status = 'pending' AND is_approved_online_driver()`                      | —                           |
-| `rides_select_admin`          | SELECT    | public        | `is_admin()`                                                              | —                           |
-| `rides_update_driver`         | UPDATE    | public        | `driver_id = (SELECT auth.uid()) OR (status = 'pending' AND is_approved_online_driver())` | `driver_id = (SELECT auth.uid())` |
-| `rides_update_passenger_cancel` | UPDATE  | public        | `passenger_id = (SELECT auth.uid())`                                      | —                           |
-| `rides_update_admin`          | UPDATE    | public        | `is_admin()`                                                              | —                           |
-
-> **Note:** "Drivers can view their own rides" is redundant with `rides_select_driver_own`. Both check `driver_id = auth.uid()`. The `rides_update_driver` WITH CHECK ensures drivers can only claim rides for themselves.
+| Policy                          | Operation | Condition                       |
+| ------------------------------- | --------- | ------------------------------- |
+| `driver_documents_select`       | SELECT    | Admin OR own driver             |
+| `driver_documents_update_admin` | UPDATE    | `is_admin()`                    |
 
 ---
 
-### `ride_status_history` — 3 Policies
+### `rides` — 3 Policies
 
-| Policy                                 | Operation | Condition             |
-| -------------------------------------- | --------- | --------------------- |
-| `ride_status_history_select_passenger` | SELECT    | Passenger of the ride |
-| `ride_status_history_select_driver`    | SELECT    | Driver of the ride    |
-| `ride_status_history_select_admin`     | SELECT    | `is_admin()`          |
-
----
-
-### `ride_routes` — 2 Policies
-
-| Policy                          | Operation | Condition                    |
-| ------------------------------- | --------- | ---------------------------- |
-| `ride_routes_select_participant`| SELECT    | Passenger or driver of ride  |
-| `ride_routes_select_admin`      | SELECT    | `is_admin()`                 |
+| Policy             | Operation | USING Condition                                                              | WITH CHECK                                                            |
+| ------------------ | --------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `rides_insert_passenger` | INSERT | —                                                                            | `passenger_id = auth.uid()`                                           |
+| `rides_select`     | SELECT    | Own (driver or passenger) OR pending + approved online driver OR admin        | —                                                                     |
+| `rides_update`     | UPDATE    | Admin OR own driver OR pending + approved online driver OR own passenger      | Admin OR driver_id=uid OR (passenger_id=uid AND frozen `driver_id`, `final_fare`, `platform_fee`) |
 
 ---
 
-### `job_alerts` — 5 Policies
+### `ride_status_history` — 1 Policy
 
-| Policy                    | Operation | Condition                      |
-| ------------------------- | --------- | ------------------------------ |
-| `job_alerts_insert_own`   | INSERT    | Driver owns the driver_profile |
-| `job_alerts_select_own`   | SELECT    | Driver owns the driver_profile |
-| `job_alerts_select_admin` | SELECT    | `is_admin()`                   |
-| `job_alerts_update_own`   | UPDATE    | Driver owns the driver_profile |
-| `job_alerts_delete_own`   | DELETE    | Driver owns the driver_profile |
+| Policy                       | Operation | Condition                         |
+| ---------------------------- | --------- | --------------------------------- |
+| `ride_status_history_select` | SELECT    | Admin OR ride participant (driver or passenger) |
 
 ---
 
-### `ride_ratings` — 3 Policies
+### `ride_routes` — 1 Policy
 
-| Policy                            | Operation | Condition                                                               |
-| --------------------------------- | --------- | ----------------------------------------------------------------------- |
-| `ride_ratings_insert_own`         | INSERT    | `rater_id = auth.uid()` AND ride is completed/fare_confirmed AND caller is participant |
-| `ride_ratings_select_participant` | SELECT    | `rater_id = auth.uid() OR ratee_id = auth.uid()`                       |
-| `ride_ratings_select_admin`       | SELECT    | `is_admin()`                                                            |
+| Policy              | Operation | Condition                             |
+| ------------------- | --------- | ------------------------------------- |
+| `ride_routes_select` | SELECT   | Admin OR ride participant (driver or passenger) |
+
+---
+
+### `job_alerts` — 4 Policies
+
+| Policy                  | Operation | Condition                                 |
+| ----------------------- | --------- | ----------------------------------------- |
+| `job_alerts_insert_own` | INSERT    | Driver owns the driver_profile            |
+| `job_alerts_select`     | SELECT    | Admin OR own driver                       |
+| `job_alerts_update_own` | UPDATE    | Driver owns the driver_profile            |
+| `job_alerts_delete_own` | DELETE    | Driver owns the driver_profile            |
+
+---
+
+### `ride_ratings` — 2 Policies
+
+| Policy                    | Operation | Condition                                                                              |
+| ------------------------- | --------- | -------------------------------------------------------------------------------------- |
+| `ride_ratings_insert_own` | INSERT    | `rater_id = auth.uid()` AND ride is completed/fare_confirmed AND caller is participant |
+| `ride_ratings_select`     | SELECT    | Admin OR rater OR ratee                                                                |
 
 ---
 
@@ -1159,101 +1140,100 @@ Two SECURITY DEFINER helper functions — `is_admin()` and `is_approved_online_d
 
 ### `messages` — 2 Policies
 
-| Policy                        | Operation | Condition                                            |
-| ----------------------------- | --------- | ---------------------------------------------------- |
-| `messages_select_participant` | SELECT    | Caller is passenger or driver in the conversation    |
-| `messages_insert_participant` | INSERT    | `sender_id = auth.uid()` AND caller is a participant |
+| Policy            | Operation | Condition                                                        |
+| ----------------- | --------- | ---------------------------------------------------------------- |
+| `messages_select` | SELECT    | `is_conversation_member(conversation_id)`                        |
+| `messages_insert` | INSERT    | `is_conversation_member(conversation_id) AND sender_id = auth.uid()` |
 
 ---
 
-### `notifications` — 3 Policies
+### `notifications` — 2 Policies
 
-| Policy                          | Operation | Condition                                                      |
-| ------------------------------- | --------- | -------------------------------------------------------------- |
-| `notifications_select_own`      | SELECT    | `user_id = (SELECT auth.uid())`                                |
-| `notifications_select_admin`    | SELECT    | `is_admin()`                                                   |
+| Policy                          | Operation | Condition                                                                                                    |
+| ------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------ |
+| `notifications_select`          | SELECT    | Own OR admin                                                                                                 |
 | `notifications_update_own_read` | UPDATE    | USING: `user_id = (SELECT auth.uid())` / WITH CHECK: `user_id = (SELECT auth.uid()) AND read_at IS NOT NULL` |
 
 ---
 
 ### `driver_locations` — 3 Policies
 
-| Policy                                      | Operation | Condition                                         |
-| ------------------------------------------- | --------- | ------------------------------------------------- |
-| `driver_locations_upsert_own`               | ALL       | Driver owns the driver_profile (USING + WITH CHECK) |
-| `driver_locations_select_admin`             | SELECT    | `is_admin()`                                      |
-| `driver_locations_select_passenger_active_ride` | SELECT | Passenger has active ride with this driver         |
+| Policy                         | Operation | Condition                                        |
+| ------------------------------ | --------- | ------------------------------------------------ |
+| `driver_locations_select`      | SELECT    | Own driver OR admin OR passenger with active ride |
+| `driver_locations_insert_own`  | INSERT    | Own driver via driver_profiles                   |
+| `driver_locations_update_own`  | UPDATE    | Own driver via driver_profiles                   |
 
 ---
 
-### `driver_earnings` — 2 Policies
+### `driver_earnings` — 1 Policy
 
-| Policy                         | Operation | Condition                      |
-| ------------------------------ | --------- | ------------------------------ |
-| `driver_earnings_select_own`   | SELECT    | Driver owns the driver_profile |
-| `driver_earnings_select_admin` | SELECT    | `is_admin()`                   |
+| Policy                   | Operation | Condition             |
+| ------------------------ | --------- | --------------------- |
+| `driver_earnings_select` | SELECT    | Admin OR own driver   |
 
 ---
 
-### `driver_payouts` — 4 Policies
+### `driver_payouts` — 3 Policies
 
-| Policy                        | Operation | Condition                      |
-| ----------------------------- | --------- | ------------------------------ |
-| `driver_payouts_select_own`   | SELECT    | Driver owns the driver_profile |
-| `driver_payouts_select_admin` | SELECT    | `is_admin()`                   |
-| `driver_payouts_insert_admin` | INSERT    | `is_admin()`                   |
-| `driver_payouts_update_admin` | UPDATE    | `is_admin()`                   |
+| Policy                        | Operation | Condition             |
+| ----------------------------- | --------- | --------------------- |
+| `driver_payouts_select`       | SELECT    | Admin OR own driver   |
+| `driver_payouts_insert_admin` | INSERT    | `is_admin()`          |
+| `driver_payouts_update_admin` | UPDATE    | `is_admin()`          |
 
 ---
 
 ### `commission_rates` — 3 Policies
 
-| Policy                          | Operation | Condition    |
-| ------------------------------- | --------- | ------------ |
-| `commission_rates_select_all`   | SELECT    | `true` (all authenticated users can read) |
-| `commission_rates_insert_admin` | INSERT    | `is_admin()` |
-| `commission_rates_update_admin` | UPDATE    | `is_admin()` |
+| Policy                                  | Operation | Condition                         |
+| --------------------------------------- | --------- | --------------------------------- |
+| `commission_rates_select_authenticated` | SELECT    | `true` (authenticated users only) |
+| `commission_rates_insert_admin`         | INSERT    | `is_admin()`                      |
+| `commission_rates_update_admin`         | UPDATE    | `is_admin()`                      |
 
 ---
 
 ### `fare_rules` — 3 Policies
 
-| Policy                     | Operation | Condition    |
-| -------------------------- | --------- | ------------ |
-| `fare_rules_select_all`    | SELECT    | `true` (all authenticated users can read) |
-| `fare_rules_insert_admin`  | INSERT    | `is_admin()` |
-| `fare_rules_update_admin`  | UPDATE    | `is_admin()` |
+| Policy                            | Operation | Condition                         |
+| --------------------------------- | --------- | --------------------------------- |
+| `fare_rules_select_authenticated` | SELECT    | `true` (authenticated users only) |
+| `fare_rules_insert_admin`         | INSERT    | `is_admin()`                      |
+| `fare_rules_update_admin`         | UPDATE    | `is_admin()`                      |
 
 ---
 
 ### `platform_fees` — 4 Policies
 
-| Policy                                         | Operation | Roles         | Condition                               |
-| ---------------------------------------------- | --------- | ------------- | --------------------------------------- |
-| `allow select active platform fee for authenticated` | SELECT | authenticated | `is_active = true`                      |
-| `allow insert platform fee for admins`          | INSERT    | authenticated | Admin check via users table             |
-| `allow update platform fee for admins`          | UPDATE    | authenticated | Admin check (USING + WITH CHECK)        |
-| `allow delete platform fee for admins`          | DELETE    | authenticated | Admin check via users table             |
+| Policy                                               | Operation | Condition                        |
+| ---------------------------------------------------- | --------- | -------------------------------- |
+| `allow select active platform fee for authenticated` | SELECT    | `is_active = true`               |
+| `allow insert platform fee for admins`               | INSERT    | Admin check via users table      |
+| `allow update platform fee for admins`               | UPDATE    | Admin check (USING + WITH CHECK) |
+| `allow delete platform fee for admins`               | DELETE    | Admin check via users table      |
 
 ---
 
 ### `admin_audit_log` — 1 Policy
 
-| Policy                          | Operation | Condition    |
-| ------------------------------- | --------- | ------------ |
-| `admin_audit_log_select_admin`  | SELECT    | `is_admin()` |
+| Policy                         | Operation | Condition    |
+| ------------------------------ | --------- | ------------ |
+| `admin_audit_log_select_admin` | SELECT    | `is_admin()` |
 
 ---
 
 ## 12. Edge Functions
 
-All functions run on Deno in Supabase's Edge Runtime. Base URL: `https://qmbwreizcwnxxfcpmdyr.supabase.co/functions/v1/`
+All 7 functions run on Deno in Supabase's Edge Runtime. Base URL: `https://qmbwreizcwnxxfcpmdyr.supabase.co/functions/v1/`
+
+All functions enforce `POST`-only method validation and return `405 Method Not Allowed` for other methods. Maps proxy functions include a 4KB payload size guard and **in-function auth verification** via `supabase.auth.getUser()` (the gateway's `verify_jwt` flag is incompatible with the project's ES256 JWT signing keys, so auth is verified inside the function body instead). Admin functions use the gateway's `verify_jwt: true` plus admin role verification in the function body.
 
 ---
 
-### `maps-autocomplete`
+### `maps-autocomplete` (v7)
 
-**JWT Required:** No | **Status:** ACTIVE
+**JWT Required:** In-function via `auth.getUser()` | **Status:** ACTIVE
 
 Google Places Autocomplete proxy. Keeps the Google Maps API key server-side.
 
@@ -1261,9 +1241,9 @@ Google Places Autocomplete proxy. Keeps the Google Maps API key server-side.
 
 ---
 
-### `maps-nearby`
+### `maps-nearby` (v7)
 
-**JWT Required:** No | **Status:** ACTIVE
+**JWT Required:** In-function via `auth.getUser()` | **Status:** ACTIVE
 
 Google Places Nearby Search proxy using the Places API v2.
 
@@ -1271,19 +1251,19 @@ Google Places Nearby Search proxy using the Places API v2.
 
 ---
 
-### `maps-directions`
+### `maps-directions` (v7)
 
-**JWT Required:** No | **Status:** ACTIVE
+**JWT Required:** In-function via `auth.getUser()` | **Status:** ACTIVE
 
-Google Maps Directions API proxy. Returns route data including coordinates, distance, duration, and encoded polyline.
+Google Maps Directions API proxy. Returns route data including decoded coordinates, distance, duration, and encoded polyline. Includes an inline polyline decoder.
 
 **Used by:** Passenger App (route preview), Driver App (navigation path)
 
 ---
 
-### `maps-place-details`
+### `maps-place-details` (v7)
 
-**JWT Required:** No | **Status:** ACTIVE
+**JWT Required:** In-function via `auth.getUser()` | **Status:** ACTIVE
 
 Google Places Details proxy using the Places API v2. Resolves a Place ID to coordinates.
 
@@ -1291,21 +1271,31 @@ Google Places Details proxy using the Places API v2. Resolves a Place ID to coor
 
 ---
 
-### `admin-approve-driver`
+### `reverse-geocode` (v10)
 
-**JWT Required:** Yes | **Status:** ACTIVE
+**JWT Required:** In-function via `auth.getUser()` | **Status:** ACTIVE
 
-Approves or rejects a driver's application. Uses the **service role key** to bypass RLS.
+Google Geocoding API reverse proxy. Converts GPS coordinates to human-readable addresses.
 
-**Database writes:** Updates `driver_profiles.verification_status` and `driver_profiles.approved_at`
+**Used by:** Driver App — resolving current location to address text
 
 ---
 
-### `admin-create-payout`
+### `admin-approve-driver` (v4)
 
-**JWT Required:** Yes | **Status:** ACTIVE
+**JWT Required:** Yes | **Admin Role Verified:** Yes | **Status:** ACTIVE
 
-Creates a new `driver_payouts` record for a driver. Uses the **service role key** to bypass RLS.
+Approves or rejects a driver's application. Verifies the caller is an admin by checking `users.role = 'admin'` before executing. Uses the **service role key** to bypass RLS for the actual update.
+
+**Database writes:** Updates `driver_profiles.verification_status`, `driver_profiles.approved_at`, and `driver_profiles.approved_by` (admin's user ID)
+
+---
+
+### `admin-create-payout` (v4)
+
+**JWT Required:** Yes | **Admin Role Verified:** Yes | **Status:** ACTIVE
+
+Creates a new `driver_payouts` record for a driver. Verifies the caller is an admin before executing. Uses the **service role key** to bypass RLS. Sets `processed_by` to the admin's user ID.
 
 ---
 
@@ -1313,20 +1303,20 @@ Creates a new `driver_payouts` record for a driver. Uses the **service role key*
 
 ### Publication Configuration
 
-| Publication             | Tables                                                                                  | Events                 |
-| ----------------------- | --------------------------------------------------------------------------------------- | ---------------------- |
-| `supabase_realtime`     | `rides`, `conversations`, `messages`, `notifications`, `driver_profiles`, `driver_locations` | INSERT, UPDATE, DELETE |
+| Publication         | Tables                                                                                       | Events                 |
+| ------------------- | -------------------------------------------------------------------------------------------- | ---------------------- |
+| `supabase_realtime` | `rides`, `conversations`, `messages`, `notifications`, `driver_profiles`, `driver_locations` | INSERT, UPDATE, DELETE |
 
 ### Active Realtime Subscriptions
 
-| Table              | Use Case                                      | Subscriber          |
-| ------------------ | --------------------------------------------- | ------------------- |
-| `rides`            | Ride status updates                           | Passenger + Driver  |
-| `driver_profiles`  | Driver online status changes                  | Admin Dashboard     |
-| `driver_locations` | Live driver position during active ride       | Passenger App       |
-| `messages`         | In-ride chat message delivery                 | Passenger + Driver  |
-| `conversations`    | Last message / unread sync                    | Passenger + Driver  |
-| `notifications`    | Push notification triggers                    | All apps            |
+| Table              | Use Case                                | Subscriber         |
+| ------------------ | --------------------------------------- | ------------------ |
+| `rides`            | Ride status updates                     | Passenger + Driver |
+| `driver_profiles`  | Driver online status changes            | Admin Dashboard    |
+| `driver_locations` | Live driver position during active ride | Passenger App      |
+| `messages`         | In-ride chat message delivery           | Passenger + Driver |
+| `conversations`    | Last message / unread sync              | Passenger + Driver |
+| `notifications`    | Push notification triggers              | All apps           |
 
 ### Driver Location Flow (Realtime-Based)
 
@@ -1528,7 +1518,7 @@ Admin Dashboard
 
 ```
 anonymous (no JWT)
-  └─ Can call Maps Edge Functions (no verify_jwt)
+  └─ Cannot call any Edge Function (all require JWT)
   └─ Cannot access any table (all have RLS enabled)
 
 authenticated (valid JWT, any role)
@@ -1543,7 +1533,7 @@ admin (authenticated + role='admin' in users)
   └─ Full SELECT on all tables (via is_admin())
   └─ Only admins create driver accounts (via Admin Dashboard + service role)
   └─ Full control over driver verification, payouts, rides
-  └─ Can call JWT-protected Edge Functions
+  └─ Can call admin Edge Functions (role verified inside function body)
   └─ Can configure commission_rates, fare_rules, platform_fees
 
 service_role (internal — Admin Dashboard server actions + Edge Functions)
@@ -1558,16 +1548,19 @@ All 14 functions use `SECURITY DEFINER` with pinned `search_path`. This means th
 
 ### Security Fixes Applied (since Feb 2026)
 
-| Issue | Fix |
-| ----- | --- |
-| Global user PII leak (`qual: true` policy) | Removed; replaced with fine-grained per-role SELECT policies |
-| Race condition on ride acceptance | `accept_ride` RPC with atomic `WHERE status = 'pending' AND driver_id IS NULL` |
-| Admin role via user metadata | `handle_new_auth_user` only whitelists `driver`; all else defaults to `passenger` |
-| `auth.uid()` init-plan optimization | Many policies now use `(SELECT auth.uid())` pattern |
-| `notifications` UPDATE without WITH CHECK | Now has `WITH CHECK (read_at IS NOT NULL)` |
-| Hardcoded 15% commission | `commission_rates` table + `platform_fees` table |
-| Missing FK indexes | All 9 previously-flagged indexes added |
-| Realtime only on `rides` | 6 tables now in publication |
+| Issue                                          | Fix                                                                                                                                  |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Global user PII leak (`qual: true` policy)     | Removed; replaced with fine-grained per-role SELECT policies                                                                         |
+| Race condition on ride acceptance              | `accept_ride` RPC with atomic `WHERE status = 'pending' AND driver_id IS NULL`                                                       |
+| Admin role via user metadata                   | `handle_new_auth_user` only whitelists `driver`; all else defaults to `passenger`                                                    |
+| `auth.uid()` init-plan optimization            | All policies and helper functions now use `(SELECT auth.uid())` pattern                                                              |
+| `notifications` UPDATE without WITH CHECK      | Now has `WITH CHECK (read_at IS NOT NULL)`                                                                                           |
+| User-facing UPDATE policies missing WITH CHECK | 5 policies hardened: `users`, `driver_profiles`, `passenger_profiles`, `vehicles`, `rides` — all freeze admin-only / computed fields |
+| Anon access to pricing config                  | `commission_rates` and `fare_rules` SELECT restricted to `authenticated` role                                                        |
+| Hardcoded 15% commission                       | `commission_rates` table + `platform_fees` table                                                                                     |
+| Missing FK indexes                             | All 9 previously-flagged indexes added; `fare_config_updated_by_idx` added                                                           |
+| Realtime only on `rides`                       | 6 tables now in publication                                                                                                          |
+| Multiple permissive RLS policies (perf)        | Consolidated to 1 policy per table/action; duplicate `messages` policies removed; `driver_locations` ALL replaced with INSERT/UPDATE/SELECT |
 
 ---
 
@@ -1585,64 +1578,50 @@ All 14 functions use `SECURITY DEFINER` with pinned `search_path`. This means th
 
 ## 19. Known Issues & Recommendations
 
-Issues are grouped by severity. Items marked **[RESOLVED]** were fixed in March–April 2026 migrations.
+Issues are grouped by severity. Items marked **[RESOLVED]** were fixed in March–April 2026 migrations and security hardening sessions.
 
 ---
 
 ### RESOLVED (previously Critical/High)
 
-| ID | Issue | Resolution |
-| -- | ----- | ---------- |
-| C-1 | `auth.uid()` init-plan in 47 RLS policies | Partially fixed — most policies now use `(SELECT auth.uid())` |
-| C-2 | Ride acceptance race condition | **Fixed:** `accept_ride` RPC with atomic WHERE clause |
-| C-3 | Users table globally readable PII | **Fixed:** Removed `true` policy; fine-grained per-role policies |
-| C-4 | Admin role assignable via metadata | **Fixed:** Only `driver` whitelisted; all else → `passenger` |
-| C-5 | Any user can UPDATE pending rides | **Fixed:** `rides_update_driver` now requires `is_approved_online_driver()` + WITH CHECK |
-| H-1 | 9 missing FK indexes | **Fixed:** All added |
-| H-2 | Driver location bottleneck on `driver_profiles` | **Fixed:** `driver_locations` table created |
-| H-5 | Only `rides` in Realtime | **Fixed:** 6 tables now published |
-| M-1 | Hardcoded 15% commission | **Fixed:** `commission_rates` + `platform_fees` tables |
-| M-2 | Denormalized `passenger_profiles` fields | **Fixed:** Columns removed; sync trigger dropped |
-| M-3 | Full AVG scan on every rating | **Fixed:** Incremental computation with `rating_count` |
-| M-4 | Double-count `total_rides` on retry | **Fixed:** Increment inside conflict-safe path |
-| M-5 | `notifications` UPDATE no WITH CHECK | **Fixed:** `WITH CHECK (read_at IS NOT NULL)` |
-| M-7 | `driver_payouts.payment_method` raw text | **Fixed:** Now uses `payment_method` enum |
-| L-1 | Missing `rides.created_at` index | **Fixed:** `rides_created_at_idx` |
-| L-2 | Missing `ride_status_history.changed_at` index | **Fixed:** `ride_status_history_changed_at_idx` |
-| L-3 | Missing partial index for online/approved drivers | **Fixed:** `driver_profiles_online_approved_idx` |
-| L-4 | Missing partial GIST index for pending rides | **Fixed:** `rides_pending_pickup_location_idx` |
-| L-6 | Route polyline bloating `rides` row | **Fixed:** `ride_routes` table with extraction triggers |
-| L-8 | Missing CHECK constraints on numeric fields | **Fixed:** Added to rides, driver_earnings, vehicles |
-| E-2 | No `fare_rules` table | **Done:** Created with temporal versioning |
-| E-3 | No `admin_audit_log` table | **Done:** Created with JSONB snapshots |
-
----
-
-### OPEN — HIGH
-
-#### H-3 — Maps Edge Functions Have No JWT Validation or Rate Limiting
-
-All four Maps functions have `verify_jwt: false`. Any caller who obtains the function URL can make unlimited Google Maps API calls at your cost.
-
-**Fix:** Enable `verify_jwt: true` or add rate limiting.
-
----
-
-#### H-6 — Redundant Rides SELECT Policy
-
-`"Drivers can view their own rides"` (authenticated role) is functionally identical to `rides_select_driver_own` (public role). Redundant policies add confusion and marginally impact policy evaluation.
-
-**Fix:** Drop the redundant policy.
-
----
-
-### OPEN — MEDIUM
-
-#### M-8 — `admin-approve-driver` Does Not Record `approved_by`
-
-The Edge Function sets `approved_at` but not `approved_by`.
-
-**Fix:** Extract admin's user ID from JWT claims and include in update.
+| ID              | Issue                                                                                                                                                           | Resolution                                                                                                                                                             |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C-1             | `auth.uid()` init-plan in 47 RLS policies                                                                                                                       | Partially fixed — most policies now use `(SELECT auth.uid())`                                                                                                          |
+| C-2             | Ride acceptance race condition                                                                                                                                  | **Fixed:** `accept_ride` RPC with atomic WHERE clause                                                                                                                  |
+| C-3             | Users table globally readable PII                                                                                                                               | **Fixed:** Removed `true` policy; fine-grained per-role policies                                                                                                       |
+| C-4             | Admin role assignable via metadata                                                                                                                              | **Fixed:** Only `driver` whitelisted; all else → `passenger`                                                                                                           |
+| C-5             | Any user can UPDATE pending rides                                                                                                                               | **Fixed:** `rides_update_driver` now requires `is_approved_online_driver()` + WITH CHECK                                                                               |
+| H-1             | 9 missing FK indexes                                                                                                                                            | **Fixed:** All added                                                                                                                                                   |
+| H-2             | Driver location bottleneck on `driver_profiles`                                                                                                                 | **Fixed:** `driver_locations` table created                                                                                                                            |
+| H-5             | Only `rides` in Realtime                                                                                                                                        | **Fixed:** 6 tables now published                                                                                                                                      |
+| M-1             | Hardcoded 15% commission                                                                                                                                        | **Fixed:** `commission_rates` + `platform_fees` tables                                                                                                                 |
+| M-2             | Denormalized `passenger_profiles` fields                                                                                                                        | **Fixed:** Columns removed; sync trigger dropped                                                                                                                       |
+| M-3             | Full AVG scan on every rating                                                                                                                                   | **Fixed:** Incremental computation with `rating_count`                                                                                                                 |
+| M-4             | Double-count `total_rides` on retry                                                                                                                             | **Fixed:** Increment inside conflict-safe path                                                                                                                         |
+| M-5             | `notifications` UPDATE no WITH CHECK                                                                                                                            | **Fixed:** `WITH CHECK (read_at IS NOT NULL)`                                                                                                                          |
+| M-7             | `driver_payouts.payment_method` raw text                                                                                                                        | **Fixed:** Now uses `payment_method` enum                                                                                                                              |
+| M-8             | `admin-approve-driver` missing `approved_by`                                                                                                                    | **Fixed:** Now sets `approved_by = user.id`                                                                                                                            |
+| L-1             | Missing `rides.created_at` index                                                                                                                                | **Fixed:** `rides_created_at_idx`                                                                                                                                      |
+| L-2             | Missing `ride_status_history.changed_at` index                                                                                                                  | **Fixed:** `ride_status_history_changed_at_idx`                                                                                                                        |
+| L-3             | Missing partial index for online/approved drivers                                                                                                               | **Fixed:** `driver_profiles_online_approved_idx`                                                                                                                       |
+| L-4             | Missing partial GIST index for pending rides                                                                                                                    | **Fixed:** `rides_pending_pickup_location_idx`                                                                                                                         |
+| L-6             | Route polyline bloating `rides` row                                                                                                                             | **Fixed:** `ride_routes` table with extraction triggers                                                                                                                |
+| L-8             | Missing CHECK constraints on numeric fields                                                                                                                     | **Fixed:** Added to rides, driver_earnings, vehicles                                                                                                                   |
+| E-2             | No `fare_rules` table                                                                                                                                           | **Done:** Created with temporal versioning                                                                                                                             |
+| E-3             | No `admin_audit_log` table                                                                                                                                      | **Done:** Created with JSONB snapshots                                                                                                                                 |
+| H-3             | Maps Edge Functions no JWT validation                                                                                                                           | **Fixed:** Maps functions use in-function `auth.getUser()` (`verify_jwt: false` due to ES256); admin functions use gateway JWT (`verify_jwt: true`) + admin role check |
+| C-new           | Admin functions callable by any authenticated user                                                                                                              | **Fixed:** `admin-approve-driver` and `admin-create-payout` now verify `users.role = 'admin'` inside function body                                                     |
+| C-rls1          | `users_update_own` — no WITH CHECK, user can change `role` to admin                                                                                             | **Fixed:** WITH CHECK freezes `role` and `is_active`                                                                                                                   |
+| C-rls2          | `driver_profiles_update_own` — driver can self-approve, fake rating                                                                                             | **Fixed:** WITH CHECK freezes `verification_status`, `approved_at/by`, `avg_rating`, `rating_count`, `total_rides`                                                     |
+| C-rls3          | `passenger_profiles_update_own` — can fake rating/rides                                                                                                         | **Fixed:** WITH CHECK freezes `avg_rating`, `rating_count`, `total_rides`                                                                                              |
+| C-rls4          | `vehicles_update_own_driver` — driver can self-verify                                                                                                           | **Fixed:** WITH CHECK freezes `is_verified`                                                                                                                            |
+| C-rls5          | `rides_update_passenger_cancel` — can tamper with fares                                                                                                         | **Fixed:** WITH CHECK freezes `driver_id`, `final_fare`, `platform_fee`                                                                                                |
+| H-perf          | `is_admin()` and `is_approved_online_driver()` bare `auth.uid()`                                                                                                | **Fixed:** Both now use `(SELECT auth.uid())` initPlan pattern                                                                                                         |
+| M-dup           | Redundant `"Drivers can view their own rides"` policy                                                                                                           | **Fixed:** Dropped — `rides_select_driver_own` already covers this                                                                                                     |
+| M-anon          | `commission_rates` and `fare_rules` readable by anon                                                                                                            | **Fixed:** Changed to `TO authenticated`                                                                                                                               |
+| H-rls-public    | ~55 RLS policies targeted `public` role (anon + authenticated), causing extra policy evaluation and anon exposure                                               | **Fixed:** All retargeted to `TO authenticated`; zero policies now target `public` role                                                                                |
+| M-fk-idx        | 5 unindexed foreign keys (`commission_rates.created_by`, `fare_rules.created_by`, `platform_fees.created_by`, `rides.commission_rate_id`, `rides.fare_rule_id`) | **Fixed:** Indexes added                                                                                                                                               |
+| H-rls-recursion | WITH CHECK policies caused `42P17 infinite recursion` due to self-referencing subqueries                                                                        | **Fixed:** 5 SECURITY DEFINER frozen-field helpers break recursion chain                                                                                               |
 
 ---
 
@@ -1666,12 +1645,12 @@ Driver signups with missing email/phone get a `pending-<uuid>` string in UNIQUE 
 
 ### Future / Enterprise-Scale Enhancements
 
-| ID | Enhancement | Status |
-| -- | ----------- | ------ |
-| E-1 | Partition `ride_status_history` by month | Not started |
-| E-4 | Use `pgmq` for async notification delivery | Not started |
+| ID  | Enhancement                                    | Status      |
+| --- | ---------------------------------------------- | ----------- |
+| E-1 | Partition `ride_status_history` by month       | Not started |
+| E-4 | Use `pgmq` for async notification delivery     | Not started |
 | E-5 | Add `driver_location_history` for route replay | Not started |
-| E-6 | Materialized views for admin reporting | Not started |
+| E-6 | Materialized views for admin reporting         | Not started |
 
 ---
 
