@@ -14,6 +14,11 @@ export async function GET(request: Request) {
     }
   }
 
-  // No code or exchange failed — redirect to login
+  // For email verification failures, show the error state instead of /login
+  if (next === "/email-verified") {
+    return NextResponse.redirect(`${origin}/email-verified?error=expired`);
+  }
+
+  // Default fallback for other flows
   return NextResponse.redirect(`${origin}/login`);
 }

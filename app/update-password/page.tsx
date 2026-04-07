@@ -78,7 +78,7 @@ export default function UpdatePasswordPage() {
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center gap-3">
           <Image src="/icon.png" alt="Blue Taxi" width={64} height={64} className="rounded-2xl" />
-          <h1 className="text-2xl font-bold text-gray-900">Blue Taxi Admin</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Blue Taxi</h1>
         </div>
 
         <div className="rounded-2xl border bg-white p-8 shadow-sm">
@@ -164,11 +164,8 @@ export default function UpdatePasswordPage() {
               </div>
               <h2 className="text-lg font-semibold text-gray-900">Password updated!</h2>
               <p className="text-sm text-gray-500">
-                Sign in with your new password.
+                You can now sign in with your new password.
               </p>
-              <Link href="/login" className="mt-2 text-sm font-medium text-[#1A56DB] hover:underline">
-                Back to Sign In
-              </Link>
             </div>
           )}
         </div>

@@ -166,7 +166,7 @@ export function LoginForm({ initialStatus }: { initialStatus?: string }) {
               <p className="text-sm text-red-600 font-medium">{error}</p>
             ) : null}
 
-            <Checkbox label="Keep me logged in" />
+            <Checkbox id="keep-me-logged-in" label="Keep me logged in" />
 
             <Button
               type="submit"
