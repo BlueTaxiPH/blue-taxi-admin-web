@@ -29,42 +29,34 @@ export async function updateFareConfig(
 
   const adminClient = createAdminClient();
 
-  // Get existing config row
+  // Upsert: update if exists, insert if not — avoids race condition
+  // from the check-then-act pattern of SELECT + conditional INSERT/UPDATE
   const { data: existing } = await adminClient
     .from('fare_config')
     .select('id')
     .limit(1)
     .maybeSingle();
 
-  if (existing) {
-    const { error } = await adminClient
-      .from('fare_config')
-      .update({
-        base_fare: input.baseFare,
-        per_km_rate: input.perKmRate,
-        per_minute_rate: input.perMinuteRate,
-        surge_enabled: input.surgeEnabled,
-        surge_multiplier: input.surgeMultiplier,
-        updated_at: new Date().toISOString(),
-        updated_by: auth.user.id,
-      })
-      .eq('id', existing.id);
+  const payload = {
+    base_fare: input.baseFare,
+    per_km_rate: input.perKmRate,
+    per_minute_rate: input.perMinuteRate,
+    surge_enabled: input.surgeEnabled,
+    surge_multiplier: input.surgeMultiplier,
+    updated_at: new Date().toISOString(),
+    updated_by: auth.user.id,
+  };
 
-    if (error) return { success: false, error: error.message };
-  } else {
-    const { error } = await adminClient
-      .from('fare_config')
-      .insert({
-        base_fare: input.baseFare,
-        per_km_rate: input.perKmRate,
-        per_minute_rate: input.perMinuteRate,
-        surge_enabled: input.surgeEnabled,
-        surge_multiplier: input.surgeMultiplier,
-        updated_by: auth.user.id,
-      });
+  const { error } = existing
+    ? await adminClient
+        .from('fare_config')
+        .update(payload)
+        .eq('id', existing.id)
+    : await adminClient
+        .from('fare_config')
+        .insert(payload);
 
-    if (error) return { success: false, error: error.message };
-  }
+  if (error) return { success: false, error: error.message };
 
   revalidatePath('/pricing-and-services');
   return { success: true };

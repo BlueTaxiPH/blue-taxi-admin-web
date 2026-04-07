@@ -1,10 +1,10 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
-  MapPin,
   Users,
   User,
   Briefcase,
@@ -14,7 +14,6 @@ import {
   Settings,
   LogOut,
 } from "lucide-react"
-import { TaxiIcon } from "@/components/icons/taxi-icon"
 import {
   Sidebar,
   SidebarContent,
@@ -35,7 +34,6 @@ const navGroups = [
   {
     label: "OPERATIONS",
     items: [
-      { label: "Live Fleet Map", href: "/live-fleet-map", icon: MapPin },
       { label: "Drivers", href: "/drivers", icon: Users },
       { label: "Passengers", href: "/passengers", icon: User },
       { label: "Trip Management", href: "/trip-management", icon: Briefcase },
@@ -66,8 +64,8 @@ export function AppSidebar({
     <Sidebar side="left" className="border-white/10">
       <SidebarHeader className="border-b border-white/10 py-1.5">
         <div className="flex h-12 items-center gap-3 px-2">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent">
-            <TaxiIcon className="size-5 text-white" />
+          <div className="flex size-9 shrink-0 items-center justify-center">
+            <Image src="/icon.png" alt="Blue Taxi" width={36} height={36} className="rounded-lg" />
           </div>
           <span className="text-lg font-bold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
             BLUE TAXI

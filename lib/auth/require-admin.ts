@@ -20,12 +20,12 @@ export async function requireAdmin(): Promise<AdminResult> {
 
   const { data: caller } = await supabase
     .from("users")
-    .select("role")
+    .select("role, admin_status")
     .eq("id", user.id)
     .single();
 
-  if (!caller || caller.role !== "admin") {
-    return { error: "Only admins can perform this action." };
+  if (!caller || caller.role !== "admin" || caller.admin_status !== "active") {
+    return { error: "Only active admins can perform this action." };
   }
 
   return { user };

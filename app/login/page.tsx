@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   description: "Sign in to the Blue Taxi admin dashboard",
 }
 
-export default function LoginPage() {
-  return <LoginPageSection />
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>
+}) {
+  const { status } = await searchParams
+  return <LoginPageSection initialStatus={status} />
 }
