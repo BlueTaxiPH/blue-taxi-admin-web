@@ -30,6 +30,8 @@ export interface AddDriverFormData {
   fullName: string
   phone: string
   email: string
+  password: string
+  confirmPassword: string
   plateNumber: string
   vehicleMake: string
   vehicleModel: string
@@ -42,6 +44,8 @@ const defaultForm: AddDriverFormData = {
   fullName: "",
   phone: "",
   email: "",
+  password: "",
+  confirmPassword: "",
   plateNumber: "",
   vehicleMake: "",
   vehicleModel: "",
@@ -113,6 +117,15 @@ export function AddDriverModal({
       return
     }
 
+    if (form.password.length < 8) {
+      setServerError("Password must be at least 8 characters.")
+      return
+    }
+    if (form.password !== form.confirmPassword) {
+      setServerError("Passwords do not match.")
+      return
+    }
+
     if (hasAnyVehicleField(form) && !hasFullVehicle(form)) {
       setServerError(
         "To add a vehicle, please fill Plate Number, Make, Model, Year (1990–2030), and Color."
@@ -127,6 +140,7 @@ export function AddDriverModal({
       fullName: form.fullName,
       email: form.email,
       phone: form.phone,
+      password: form.password,
       plateNumber: form.plateNumber?.trim() || undefined,
       vehicleMake: form.vehicleMake?.trim() || undefined,
       vehicleModel: form.vehicleModel?.trim() || undefined,
@@ -194,6 +208,34 @@ export function AddDriverModal({
                       placeholder="driver@example.com"
                       value={form.email}
                       onChange={(e) => update("email", e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="driver-password" className="text-muted-foreground mb-1.5 block text-sm font-medium">
+                      Password <span className="text-red-500" aria-hidden>*</span>
+                    </label>
+                    <Input
+                      id="driver-password"
+                      type="password"
+                      placeholder="Min. 8 characters"
+                      value={form.password}
+                      onChange={(e) => update("password", e.target.value)}
+                      autoComplete="new-password"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="driver-confirm-password" className="text-muted-foreground mb-1.5 block text-sm font-medium">
+                      Confirm Password <span className="text-red-500" aria-hidden>*</span>
+                    </label>
+                    <Input
+                      id="driver-confirm-password"
+                      type="password"
+                      placeholder="Re-enter password"
+                      value={form.confirmPassword}
+                      onChange={(e) => update("confirmPassword", e.target.value)}
+                      autoComplete="new-password"
                     />
                   </div>
                 </div>

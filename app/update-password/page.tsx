@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,7 +9,7 @@ import { createClient } from "@/lib/supabase/client"
 
 type PageState = "loading" | "ready" | "success" | "expired"
 
-export default function DriverSetupPage() {
+export default function UpdatePasswordPage() {
   const [pageState, setPageState] = useState<PageState>("loading")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -25,7 +26,6 @@ export default function DriverSetupPage() {
         return
       }
 
-      // Hash token may still be exchanging — listen for the state change
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         (_event, session) => {
           if (session) {
@@ -35,7 +35,6 @@ export default function DriverSetupPage() {
         }
       )
 
-      // If no auth event fires within 6 seconds, the link is expired or invalid
       const timer = setTimeout(() => {
         setPageState("expired")
         subscription.unsubscribe()
@@ -71,26 +70,22 @@ export default function DriverSetupPage() {
       return
     }
 
-    // Sign out after password is set — driver uses the mobile app, not this web
-    await supabase.auth.signOut()
     setPageState("success")
   }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md">
-        {/* Branding */}
         <div className="mb-8 flex flex-col items-center gap-3">
           <Image src="/icon.png" alt="Blue Taxi" width={64} height={64} className="rounded-2xl" />
-          <h1 className="text-2xl font-bold text-gray-900">Blue Taxi</h1>
-          <p className="text-sm text-gray-500">Driver Account Setup</p>
+          <h1 className="text-2xl font-bold text-gray-900">Blue Taxi Admin</h1>
         </div>
 
         <div className="rounded-2xl border bg-white p-8 shadow-sm">
           {pageState === "loading" && (
             <div className="flex flex-col items-center gap-3 py-6">
               <div className="size-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
-              <p className="text-sm text-gray-500">Verifying your invite link…</p>
+              <p className="text-sm text-gray-500">Verifying your reset link…</p>
             </div>
           )}
 
@@ -103,22 +98,25 @@ export default function DriverSetupPage() {
               </div>
               <h2 className="text-lg font-semibold text-gray-900">Link expired</h2>
               <p className="text-sm text-gray-500">
-                This link has expired or is invalid. Contact your administrator to resend the invite.
+                This link has expired or has already been used. Request a new one.
               </p>
+              <Link href="/forgot-password" className="mt-2 text-sm font-medium text-[#1A56DB] hover:underline">
+                Request new link
+              </Link>
             </div>
           )}
 
           {pageState === "ready" && (
             <>
-              <h2 className="mb-1 text-xl font-semibold text-gray-900">Activate Your Account</h2>
+              <h2 className="mb-1 text-xl font-semibold text-gray-900">Reset Your Password</h2>
               <p className="mb-6 text-sm text-gray-500">
-                Set a password to complete your account setup. You&apos;ll use this to sign in to the Blue Taxi Driver app.
+                Enter a new password for your account.
               </p>
 
               <form className="space-y-5" onSubmit={handleSubmit}>
                 <div className="space-y-2">
                   <label htmlFor="password" className="text-sm font-medium text-gray-900">
-                    Password <span className="text-red-500" aria-hidden>*</span>
+                    New Password <span className="text-red-500" aria-hidden>*</span>
                   </label>
                   <Input
                     id="password"
@@ -138,7 +136,7 @@ export default function DriverSetupPage() {
                   <Input
                     id="confirmPassword"
                     type="password"
-                    placeholder="Re-enter your password"
+                    placeholder="Re-enter your new password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
@@ -151,7 +149,7 @@ export default function DriverSetupPage() {
                 ) : null}
 
                 <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
-                  {isSubmitting ? "Activating…" : "Set Password & Activate"}
+                  {isSubmitting ? "Updating…" : "Update Password"}
                 </Button>
               </form>
             </>
@@ -164,10 +162,13 @@ export default function DriverSetupPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="text-lg font-semibold text-gray-900">Account activated!</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Password updated!</h2>
               <p className="text-sm text-gray-500">
-                Sign in to the Blue Taxi Driver app using your email and the password you just set.
+                Sign in with your new password.
               </p>
+              <Link href="/login" className="mt-2 text-sm font-medium text-[#1A56DB] hover:underline">
+                Back to Sign In
+              </Link>
             </div>
           )}
         </div>

@@ -27,11 +27,11 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const publicPaths = new Set(["/login", "/", "/forgot-password", "/sign-up", "/driver-setup"]);
+  const publicPaths = new Set(["/login", "/", "/forgot-password", "/sign-up", "/update-password", "/auth/callback"]);
   const isPublicRoute = publicPaths.has(request.nextUrl.pathname);
 
   // These pages handle their own auth tokens — never auto-redirect away from them
-  const noAutoRedirectPaths = new Set(["/forgot-password", "/driver-setup"]);
+  const noAutoRedirectPaths = new Set(["/forgot-password", "/update-password"]);
 
   if (!isPublicRoute && !user) {
     const url = request.nextUrl.clone();
