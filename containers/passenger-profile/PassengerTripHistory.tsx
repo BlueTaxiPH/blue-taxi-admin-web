@@ -1,4 +1,7 @@
-import { Button } from "@/components/ui/button"
+"use client"
+
+import { useState, useMemo } from "react"
+import { Search, Route } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import {
   Table,
@@ -8,159 +11,163 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { rideStatusBadge } from "@/lib/badge-utils"
+import { Badge } from "@/components/ui/badge"
 import type { PassengerRide } from "./types"
 
 interface PassengerTripHistoryProps {
   rides: PassengerRide[]
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  pending: "Pending",
+  accepted: "Accepted",
+  navigating_to_pickup: "En Route",
+  arrived_at_pickup: "At Pickup",
+  waiting_for_passenger: "Waiting",
+  trip_in_progress: "In Progress",
+  dropped_off: "Dropped Off",
+  input_fare: "Entering Fare",
+  fare_confirmed: "Fare Confirmed",
+  completed: "Completed",
+  cancelled: "Cancelled",
+}
+
 export function PassengerTripHistory({ rides }: PassengerTripHistoryProps) {
+  const [search, setSearch] = useState("")
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return rides
+    const q = search.toLowerCase()
+    return rides.filter((ride) => {
+      const driver = Array.isArray(ride.driver) ? ride.driver[0] : ride.driver
+      const driverName = driver
+        ? [driver.first_name, driver.last_name].filter(Boolean).join(" ").toLowerCase()
+        : ""
+      const rideId = ride.id.slice(0, 8).toLowerCase()
+      const pickup = (ride.pickup_address ?? "").toLowerCase()
+      const dropoff = (ride.dropoff_address ?? "").toLowerCase()
+      return rideId.includes(q) || driverName.includes(q) || pickup.includes(q) || dropoff.includes(q)
+    })
+  }, [rides, search])
+
   return (
-    <section className="flex h-full flex-col rounded-xl border bg-card p-6 shadow-sm">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div
+      className="flex flex-col overflow-hidden rounded-xl bg-white"
+      style={{ border: "1px solid #DCE6F1", boxShadow: "0 1px 3px rgba(13,27,42,0.06)" }}
+    >
+      <div
+        className="flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+        style={{ borderColor: "#EEF3F9" }}
+      >
         <div>
-          <h2 className="text-base font-semibold text-foreground">
-            Trip History
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            Recent rides and transactions
-          </p>
+          <h2 className="text-sm font-semibold text-[#0D1B2A]">Trip History</h2>
+          <p className="text-xs text-[#8BACC8]">Recent rides and transactions</p>
         </div>
-        <div className="flex flex-row items-center gap-2 text-xs">
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#8BACC8]" />
           <Input
             type="search"
             placeholder="Search trips..."
-            className="text-xs"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 text-sm"
           />
-          <Button variant="outline">
-            Filter
-          </Button>
         </div>
       </div>
 
-      <div className="mt-4 rounded-lg border bg-background">
-        <Table>
-          <TableHeader>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="uppercase text-muted-foreground">Trip ID</TableHead>
+            <TableHead className="uppercase text-muted-foreground">Date</TableHead>
+            <TableHead className="uppercase text-muted-foreground">Route</TableHead>
+            <TableHead className="uppercase text-muted-foreground">Driver</TableHead>
+            <TableHead className="uppercase text-muted-foreground">Status</TableHead>
+            <TableHead className="text-right uppercase text-muted-foreground">Amount</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filtered.length === 0 ? (
             <TableRow>
-              <TableHead>Trip ID</TableHead>
-              <TableHead>Date &amp; Time</TableHead>
-              <TableHead>Route</TableHead>
-              <TableHead>Driver</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
+              <TableCell colSpan={6} className="py-16 text-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex size-14 items-center justify-center rounded-full bg-[#F4F6FB]">
+                    <Route className="size-7 text-[#8BACC8]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#0D1B2A]">No trips found</p>
+                    {search ? (
+                      <p className="mt-0.5 text-xs text-[#8BACC8]">Try adjusting your search</p>
+                    ) : null}
+                  </div>
+                </div>
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rides.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
-                  No trips found
-                </TableCell>
-              </TableRow>
-            ) : null}
-            {rides.map((ride) => {
-              const driver = Array.isArray(ride.driver)
-                ? ride.driver[0]
-                : ride.driver
+          ) : (
+            filtered.map((ride) => {
+              const driver = Array.isArray(ride.driver) ? ride.driver[0] : ride.driver
               const driverName = driver
                 ? [driver.first_name, driver.last_name].filter(Boolean).join(" ")
                 : "Unassigned"
 
-              const route = [ride.pickup_address, ride.dropoff_address]
-                .filter(Boolean)
-                .join(" -> ")
-
               const rideDate = new Date(ride.created_at)
-              const dateStr = rideDate.toLocaleDateString("en-US", {
+              const dateStr = rideDate.toLocaleDateString("en-PH", {
                 month: "short",
                 day: "numeric",
-                year: "numeric",
               })
-              const timeStr = rideDate.toLocaleTimeString("en-US", {
+              const timeStr = rideDate.toLocaleTimeString("en-PH", {
                 hour: "2-digit",
                 minute: "2-digit",
               })
 
-              const displayStatus = ride.status
-                .replace(/_/g, " ")
-                .replace(/\b\w/g, (c) => c.toUpperCase())
-
               const fare = ride.final_fare != null
-                ? `P${ride.final_fare.toFixed(2)}`
-                : "P0.00"
+                ? `₱${Number(ride.final_fare).toFixed(0)}`
+                : "—"
 
               return (
-                <TableRow key={ride.id}>
-                  <TableCell>
-                    <span className="font-medium text-foreground">
-                      #{ride.id.slice(0, 8).toUpperCase()}
-                    </span>
+                <TableRow key={ride.id} className="hover:bg-[#F4F8FF]">
+                  <TableCell className="font-mono text-xs font-semibold text-[#1A56DB]">
+                    #{ride.id.slice(0, 8).toUpperCase()}
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col text-sm">
-                      <span>{dateStr}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {timeStr}
-                      </span>
+                    <div className="text-sm">
+                      <span className="text-[#0D1B2A]">{dateStr}</span>
+                      <span className="ml-1 font-mono text-xs text-[#8BACC8]">{timeStr}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="max-w-xs truncate text-sm">
-                    {route || "N/A"}
+                  <TableCell>
+                    <div className="max-w-[180px]">
+                      <p className="truncate text-xs text-[#0D1B2A]" title={ride.pickup_address ?? ""}>
+                        {ride.pickup_address ?? "—"}
+                      </p>
+                      <p className="truncate text-xs text-[#8BACC8]" title={ride.dropoff_address ?? ""}>
+                        {ride.dropoff_address ?? "—"}
+                      </p>
+                    </div>
                   </TableCell>
                   <TableCell className="text-sm">{driverName}</TableCell>
                   <TableCell>
-                    <StatusPill status={displayStatus} />
+                    <Badge variant="secondary" className={rideStatusBadge(ride.status)}>
+                      {STATUS_LABELS[ride.status] ?? ride.status}
+                    </Badge>
                   </TableCell>
-                  <TableCell className="text-right text-sm font-semibold">
+                  <TableCell className="text-right font-mono text-sm font-semibold">
                     {fare}
                   </TableCell>
                 </TableRow>
               )
-            })}
-          </TableBody>
-        </Table>
+            })
+          )}
+        </TableBody>
+      </Table>
+
+      <div
+        className="border-t px-5 py-3 text-xs text-[#8BACC8]"
+        style={{ borderColor: "#EEF3F9" }}
+      >
+        Showing {filtered.length} of {rides.length} trips
       </div>
-
-      <div className="mt-auto flex w-full flex-wrap pt-4 justify-between gap-3 text-xs text-muted-foreground">
-        <div className="flex items-center">
-          <p>Showing {rides.length} trips</p>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function StatusPill({ status }: { status: string }) {
-  const config: Record<
-    string,
-    { dot: string; label: string; badge: string }
-  > = {
-    Completed: {
-      dot: "bg-emerald-500",
-      label: "text-emerald-800 dark:text-emerald-300",
-      badge:
-        "bg-emerald-50 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
-    },
-    Cancelled: {
-      dot: "bg-red-500",
-      label: "text-red-800 dark:text-red-300",
-      badge:
-        "bg-red-50 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-    },
-  }
-
-  const variant = config[status] ?? {
-    dot: "bg-blue-500",
-    label: "text-blue-800 dark:text-blue-300",
-    badge: "bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-  }
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${variant.badge}`}
-    >
-      <span className={`size-1.5 rounded-full ${variant.dot}`} />
-      <span className={variant.label}>{status}</span>
-    </span>
+    </div>
   )
 }

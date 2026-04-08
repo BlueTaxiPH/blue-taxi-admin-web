@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { Loader2, Receipt } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { updatePlatformFee } from "@/app/actions/platform-fee"
@@ -20,6 +20,7 @@ export function ActivePricingRuleEditorCard({
     ? activeFee.fee_amount - insuranceFromDb
     : 0
 
+  const router = useRouter()
   const [platformFeeInput, setPlatformFeeInput] = useState(String(platformFromDb))
   const [insuranceFeeInput, setInsuranceFeeInput] = useState(String(insuranceFromDb))
   const [isPending, startTransition] = useTransition()
@@ -45,6 +46,7 @@ export function ActivePricingRuleEditorCard({
       const result = await updatePlatformFee(platformAmount, insuranceAmount)
       if (result.success) {
         setSaveMessage({ type: "success", text: "Fees updated successfully." })
+        router.refresh()
       } else {
         setSaveMessage({ type: "error", text: result.error })
       }
@@ -52,22 +54,27 @@ export function ActivePricingRuleEditorCard({
   }
 
   return (
-    <Card className="gap-4 py-5">
-      <CardHeader className="px-5 pb-0">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg">Platform Fee Configuration</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Set the platform fee and insurance charged on every ride.
-            </p>
-          </div>
-          <Receipt className="size-5 text-muted-foreground" />
+    <div
+      className="overflow-hidden rounded-xl bg-white"
+      style={{ border: "1px solid #DCE6F1", boxShadow: "0 1px 3px rgba(13,27,42,0.06)" }}
+    >
+      <div
+        className="flex items-center justify-between border-b px-5 py-4"
+        style={{ borderColor: "#EEF3F9" }}
+      >
+        <div>
+          <h2 className="text-sm font-semibold text-[#0D1B2A]">Platform Fee Configuration</h2>
+          <p className="text-xs text-[#8BACC8]">
+            Set the platform fee and insurance charged on every ride
+          </p>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4 px-5">
+        <Receipt className="size-5 text-[#8BACC8]" />
+      </div>
+
+      <div className="space-y-4 p-5">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-[#8BACC8]">
               Platform Fee (₱)
             </label>
             <Input
@@ -80,13 +87,14 @@ export function ActivePricingRuleEditorCard({
                 setSaveMessage(null)
               }}
               placeholder="0.00"
+              className="font-mono"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-[#8BACC8]">
               Service fee collected by the platform.
             </p>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-[#8BACC8]">
               Insurance Fee (₱)
             </label>
             <Input
@@ -99,41 +107,46 @@ export function ActivePricingRuleEditorCard({
                 setSaveMessage(null)
               }}
               placeholder="0.00"
+              className="font-mono"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-[#8BACC8]">
               Mandatory regulatory insurance charge.
             </p>
           </div>
         </div>
+      </div>
 
-        <div className="rounded-lg border bg-muted/40 px-4 py-3 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">
-              Total added to meter fare
-            </p>
-            <p className="text-2xl font-bold mt-0.5">₱{totalPlatformFee.toFixed(2)}</p>
-          </div>
-          <Button
-            onClick={handleSave}
-            disabled={isPending}
-          >
-            {isPending ? (
-              <>
-                <Loader2 className="mr-2 size-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save Fees"
-            )}
-          </Button>
+      <div
+        className="flex items-center justify-between border-t px-5 py-4"
+        style={{ borderColor: "#EEF3F9", background: "#F8FBFF" }}
+      >
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-[#8BACC8]">
+            Total per ride
+          </p>
+          <p className="mt-0.5 font-mono text-2xl font-bold text-[#0D1B2A]">
+            ₱{totalPlatformFee.toFixed(2)}
+          </p>
         </div>
+        <Button onClick={handleSave} disabled={isPending}>
+          {isPending ? (
+            <>
+              <Loader2 className="mr-2 size-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            "Save Fees"
+          )}
+        </Button>
+      </div>
 
-        {saveMessage ? (
-          <p className={`text-sm ${saveMessage.type === "success" ? "text-green-600" : "text-red-600"}`}>
+      {saveMessage ? (
+        <div className="border-t px-5 py-3" style={{ borderColor: "#EEF3F9" }}>
+          <p className={`text-sm ${saveMessage.type === "success" ? "text-[#059669]" : "text-[#DC2626]"}`}>
             {saveMessage.text}
           </p>
-        ) : null}
-      </CardContent>
-    </Card>
+        </div>
+      ) : null}
+    </div>
   )
 }

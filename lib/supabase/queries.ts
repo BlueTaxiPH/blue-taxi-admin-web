@@ -167,6 +167,25 @@ export async function fetchRides() {
   return data ?? []
 }
 
+export async function fetchCompletedRides() {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from("rides")
+    .select(`
+      id, status, final_fare, estimated_fare, platform_fee,
+      pickup_address, dropoff_address, created_at, trip_completed_at,
+      passenger:users!rides_passenger_id_fkey(first_name, last_name),
+      driver:users!rides_driver_id_fkey(first_name, last_name)
+    `)
+    .eq("status", "completed")
+    .order("trip_completed_at", { ascending: false })
+    .limit(500)
+
+  if (error) throw error
+  return data ?? []
+}
+
 export async function fetchPayouts() {
   const supabase = await createClient()
 
@@ -201,7 +220,10 @@ export async function fetchPlatformFeeHistory() {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("platform_fees")
-    .select("id, fee_amount, insurance_amount, label, is_active, created_by, created_at, updated_at")
+    .select(`
+      id, fee_amount, insurance_amount, label, is_active, created_by, created_at, updated_at,
+      changed_by:users!platform_fees_created_by_fkey(first_name, last_name)
+    `)
     .order("created_at", { ascending: false })
     .limit(20)
   if (error) throw error
@@ -287,7 +309,7 @@ export async function fetchPassengers() {
   const { data, error } = await supabase
     .from("users")
     .select(`
-      id, first_name, last_name, email, phone, created_at,
+      id, first_name, last_name, email, phone, created_at, is_active,
       passenger_profiles(id, total_rides, avg_rating)
     `)
     .eq("role", "passenger")
@@ -304,7 +326,7 @@ export async function fetchPassengerById(userId: string) {
   const { data: user, error: userError } = await supabase
     .from("users")
     .select(`
-      id, first_name, last_name, email, phone, photo_url, created_at,
+      id, first_name, last_name, email, phone, photo_url, created_at, is_active,
       passenger_profiles(id, total_rides, avg_rating)
     `)
     .eq("id", userId)

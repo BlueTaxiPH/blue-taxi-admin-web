@@ -2,18 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { PageHeader } from "@/components/page-header"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { ServiceAvailabilityCard } from "./ServiceAvailabilityCard"
 import { ActivePricingRuleEditorCard } from "./ActivePricingRuleEditorCard"
 import { FareConfigCard } from "./FareConfigCard"
 import { VersionHistoryCard } from "./VersionHistoryCard"
-import { CityManagementCard } from "./CityManagementCard"
 import { fetchCityServicesAction } from "@/app/actions/fetch-city-services"
 import type { PlatformFee } from "@/types/platform-fee"
 import type { FareConfig } from "@/lib/supabase/queries"
@@ -61,25 +53,14 @@ export function PricingAndServicesPage({ activeFee, feeHistory, cities, fareConf
         title="Pricing & Services"
         subtitle="Configure fares, cities, and service availability"
         breadcrumbs={["Business", "Pricing & Services"]}
-        actions={
-          <Select value={selectedCityId} onValueChange={setSelectedCityId}>
-            <SelectTrigger className="w-[170px]">
-              <SelectValue placeholder="Select city" />
-            </SelectTrigger>
-            <SelectContent>
-              {cities.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        }
       />
 
       <main className="grid gap-6 p-6 lg:grid-cols-[1fr_320px]">
         <section className="space-y-6">
           <ServiceAvailabilityCard
+            cities={cities}
+            selectedCityId={selectedCityId}
+            onCityChange={setSelectedCityId}
             cityId={selectedCityId}
             isBasicAvailable={isBasicAvailable}
             isXlAvailable={isXlAvailable}
@@ -90,16 +71,13 @@ export function PricingAndServicesPage({ activeFee, feeHistory, cities, fareConf
             }}
           />
 
-          <ActivePricingRuleEditorCard
-            activeFee={activeFee}
-          />
+          <ActivePricingRuleEditorCard activeFee={activeFee} />
 
           <FareConfigCard fareConfig={fareConfig} />
         </section>
 
         <aside className="space-y-6">
           <VersionHistoryCard feeHistory={feeHistory} />
-          <CityManagementCard cities={cities} />
         </aside>
       </main>
     </div>

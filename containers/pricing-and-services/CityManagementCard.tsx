@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, Plus, Pencil, Trash2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -102,43 +101,49 @@ export function CityManagementCard({ cities }: CityManagementCardProps) {
 
   return (
     <>
-      <Card className="gap-4 py-5">
-        <CardHeader className="px-5 pb-0">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">City Management</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Add, edit, or remove available cities
-              </p>
-            </div>
-            <Button size="sm" onClick={openAdd}>
-              <Plus className="size-4 mr-1.5" />
-              Add City
-            </Button>
+      <div
+        className="overflow-hidden rounded-xl bg-white"
+        style={{ border: '1px solid #DCE6F1', boxShadow: '0 1px 3px rgba(13,27,42,0.06)' }}
+      >
+        <div
+          className="flex items-center justify-between border-b px-5 py-4"
+          style={{ borderColor: '#EEF3F9' }}
+        >
+          <div>
+            <h2 className="text-sm font-semibold text-[#0D1B2A]">City Management</h2>
+            <p className="text-xs text-[#8BACC8]">Add, edit, or remove cities</p>
           </div>
-        </CardHeader>
-        <CardContent className="px-5">
+          <Button size="sm" onClick={openAdd}>
+            <Plus className="size-3.5" />
+            Add City
+          </Button>
+        </div>
+        <div className="p-5">
           {cities.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              No cities configured yet. Add one to get started.
-            </p>
+            <div className="flex flex-col items-center gap-3 py-8 text-center">
+              <div className="flex size-12 items-center justify-center rounded-full bg-[#F4F6FB]">
+                <MapPin className="size-6 text-[#8BACC8]" />
+              </div>
+              <p className="text-sm text-[#8BACC8]">No cities configured yet</p>
+            </div>
           ) : (
             <div className="space-y-2">
               {cities.map((city) => (
                 <div
                   key={city.id}
-                  className="flex items-center justify-between rounded-lg border px-4 py-3"
+                  className="flex items-center justify-between rounded-lg px-4 py-3 transition-colors hover:bg-[#F4F8FF]"
+                  style={{ border: '1px solid #EEF3F9' }}
                 >
                   <div className="flex items-center gap-3">
-                    <MapPin className="size-4 text-muted-foreground" />
+                    <MapPin className="size-4 text-[#8BACC8]" />
                     <div>
-                      <p className="text-sm font-medium">{city.name}</p>
+                      <p className="text-sm font-medium text-[#0D1B2A]">{city.name}</p>
                       {city.latitude != null && city.longitude != null ? (
-                        <p className="text-xs text-muted-foreground">
+                        <p className="font-mono text-xs text-[#8BACC8]">
                           {city.latitude.toFixed(4)}, {city.longitude.toFixed(4)}
                         </p>
                       ) : (
-                        <p className="text-xs text-muted-foreground">No coordinates set</p>
+                        <p className="text-xs text-[#8BACC8]">No coordinates set</p>
                       )}
                     </div>
                   </div>
@@ -148,6 +153,7 @@ export function CityManagementCard({ cities }: CityManagementCardProps) {
                       size="icon"
                       className="size-8"
                       onClick={() => openEdit(city)}
+                      aria-label={`Edit ${city.name}`}
                     >
                       <Pencil className="size-3.5" />
                     </Button>
@@ -156,6 +162,7 @@ export function CityManagementCard({ cities }: CityManagementCardProps) {
                       size="icon"
                       className="size-8 text-red-500 hover:text-red-700"
                       onClick={() => void handleDelete(city.id, city.name)}
+                      aria-label={`Delete ${city.name}`}
                     >
                       <Trash2 className="size-3.5" />
                     </Button>
@@ -164,8 +171,8 @@ export function CityManagementCard({ cities }: CityManagementCardProps) {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
@@ -203,11 +210,11 @@ export function CityManagementCard({ cities }: CityManagementCardProps) {
                 />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Coordinates are used to match passengers to cities based on their pickup location.
+            <p className="text-xs text-[#8BACC8]">
+              Coordinates match passengers to cities based on pickup location.
             </p>
             {error ? (
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm text-[#DC2626]">{error}</p>
             ) : null}
           </div>
           <DialogFooter>

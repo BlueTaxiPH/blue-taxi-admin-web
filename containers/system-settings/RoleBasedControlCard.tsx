@@ -1,89 +1,104 @@
 "use client"
 
-import { ArrowRight, Shield } from "lucide-react"
-
+import { Shield } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  MODULES,
+  type ModuleId,
+  type PermissionsState,
+  type Role,
+} from "./system-settings-model"
 
-import { MODULES, type ModuleId, type PermissionsState, type Role } from "./system-settings-model"
+interface RoleBasedControlCardProps {
+  roles: Role[]
+  permissionsByModule: PermissionsState
+  onUpdatePermission: (moduleId: ModuleId, roleId: string, next: boolean) => void
+}
 
 export function RoleBasedControlCard({
   roles,
   permissionsByModule,
   onUpdatePermission,
-}: {
-  roles: Role[]
-  permissionsByModule: PermissionsState
-  onUpdatePermission: (moduleId: ModuleId, roleId: string, next: boolean) => void
-}) {
+}: RoleBasedControlCardProps) {
   return (
-    <section className="rounded-2xl border bg-card p-5 shadow-sm">
-      <div className="flex items-center gap-2">
-        <Shield className="size-8 text-primary" aria-hidden />
+    <div
+      className="overflow-hidden rounded-xl bg-white"
+      style={{
+        border: "1px solid #DCE6F1",
+        boxShadow: "0 1px 3px rgba(13,27,42,0.06), 0 4px 12px rgba(13,27,42,0.04)",
+      }}
+    >
+      <div
+        className="flex items-center gap-3 px-5 py-4"
+        style={{ borderBottom: "1px solid #EEF3F9" }}
+      >
+        <Shield className="size-5 text-[#1A56DB]" aria-hidden />
         <div>
-          <h2 className="text-lg font-semibold">Role-Based Access Control (RBAC)</h2>
-          <p className="text-sm text-muted-foreground">
-            Define permissions per module
+          <p
+            className="text-sm font-semibold text-[#0D1B2A]"
+            style={{ fontFamily: "var(--font-outfit, sans-serif)" }}
+          >
+            Role-Based Access Control
+          </p>
+          <p className="text-xs text-[#4A607A]">
+            Define permissions per module for each admin role
           </p>
         </div>
       </div>
 
-      <div className="mt-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[220px] text-xs uppercase tracking-wider text-muted-foreground">
-                Modules
+      <Table>
+        <TableHeader>
+          <TableRow style={{ borderColor: "#EEF3F9" }}>
+            <TableHead className="w-[220px] text-[11px] font-semibold uppercase tracking-wider text-[#8BACC8]">
+              Modules
+            </TableHead>
+            {roles.map((role) => (
+              <TableHead
+                key={role.id}
+                className="text-center text-[11px] font-semibold uppercase tracking-wider text-[#8BACC8]"
+              >
+                {role.name}
               </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+
+        <TableBody>
+          {MODULES.map((module) => (
+            <TableRow
+              key={module.id}
+              className="transition-colors hover:bg-[#F4F8FF]"
+            >
+              <TableCell className="text-sm font-medium text-[#0D1B2A]">
+                {module.label}
+              </TableCell>
               {roles.map((role) => (
-                <TableHead
-                  key={role.id}
-                  className="text-center text-xs uppercase tracking-wider text-muted-foreground"
+                <TableCell
+                  key={`${module.id}:${role.id}`}
+                  className="text-center"
                 >
-                  {role.name}
-                </TableHead>
+                  <div className="flex w-full justify-center">
+                    <Checkbox
+                      checked={!!permissionsByModule[module.id]?.[role.id]}
+                      onChange={(e) =>
+                        onUpdatePermission(module.id, role.id, e.target.checked)
+                      }
+                    />
+                  </div>
+                </TableCell>
               ))}
             </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {MODULES.map((module) => (
-              <TableRow key={module.id}>
-                <TableCell className="font-medium">
-                  {module.label}
-                </TableCell>
-                {roles.map((role) => (
-                  <TableCell
-                    key={`${module.id}:${role.id}`}
-                    className="text-center"
-                  >
-                    <div className="flex w-full justify-center">
-                      <Checkbox
-                        checked={!!permissionsByModule[module.id]?.[role.id]}
-                        onChange={(e) =>
-                          onUpdatePermission(
-                            module.id,
-                            role.id,
-                            e.target.checked
-                          )
-                        }
-                      />
-                    </div>
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-
-        <div className="mt-4 flex items-center justify-end">
-          <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground">
-            Manage Advanced Permissions{" "}
-            <ArrowRight className="size-4" aria-hidden />
-          </Button>
-        </div>
-      </div>
-    </section>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   )
 }
