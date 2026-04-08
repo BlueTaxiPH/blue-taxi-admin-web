@@ -61,5 +61,6 @@ export async function updatePlatformFee(
   }
 
   revalidatePath('/pricing-and-services');
+  revalidatePath('/system-settings');
   return { success: true };
 }

@@ -1,25 +1,62 @@
-import { createAdminClient } from "@/lib/supabase/admin-client"
+"use client"
+
+import { MapPin, Shield, Users } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { PageHeader } from "@/components/page-header"
+import { CityManagementTab } from "./CityManagementTab"
+import { AccessControlTab } from "./AccessControlTab"
+import { AdminUsersTab } from "./AdminUsersTab"
 import type { AdminUser } from "@/types/admin-user"
+import type { fetchCitiesWithCoords } from "@/lib/supabase/queries"
 
-import { SystemSettingsClient } from "./SystemSettingsClient"
-import { AdminUsersCard } from "./AdminUsersCard"
+type City = Awaited<ReturnType<typeof fetchCitiesWithCoords>>[number]
 
-export async function SystemSettingsPage() {
-  const adminClient = createAdminClient()
+interface SystemSettingsPageProps {
+  adminUsers: AdminUser[]
+  cities: City[]
+}
 
-  const { data } = await adminClient
-    .from("users")
-    .select("id, first_name, last_name, email, phone, admin_status, admin_role, is_active, created_at")
-    .eq("role", "admin")
-    .order("created_at", { ascending: false })
-
-  const adminUsers = (data ?? []) as AdminUser[]
-
+export function SystemSettingsPage({
+  adminUsers,
+  cities,
+}: SystemSettingsPageProps) {
   return (
-    <div>
-      <SystemSettingsClient />
-      <div className="px-6 pb-6">
-        <AdminUsersCard users={adminUsers} />
+    <div className="flex min-h-screen flex-col">
+      <PageHeader
+        title="System Settings"
+        subtitle="City configuration, access control, and admin management"
+        breadcrumbs={["System Settings"]}
+      />
+      <div className="p-7">
+        <Tabs defaultValue="cities" className="space-y-6">
+          <TabsList
+            className="bg-white"
+            style={{ border: "1px solid #DCE6F1" }}
+          >
+            <TabsTrigger value="cities" className="gap-2">
+              <MapPin className="size-3.5" aria-hidden />
+              City Management
+            </TabsTrigger>
+            <TabsTrigger value="access" className="gap-2">
+              <Shield className="size-3.5" aria-hidden />
+              Access Control
+            </TabsTrigger>
+            <TabsTrigger value="admins" className="gap-2">
+              <Users className="size-3.5" aria-hidden />
+              Admin Users
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="cities">
+            <CityManagementTab cities={cities} />
+          </TabsContent>
+          <TabsContent value="access">
+            <AccessControlTab />
+          </TabsContent>
+          <TabsContent value="admins">
+            <AdminUsersTab users={adminUsers} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )

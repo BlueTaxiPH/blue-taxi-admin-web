@@ -1,5 +1,1 @@
-import { InsuranceReportsPage } from "./InsuranceReportsPage"
-
-export default function InsuranceReportsSection() {
-  return <InsuranceReportsPage />
-}
+export { InsuranceReportsPage } from "./InsuranceReportsPage"

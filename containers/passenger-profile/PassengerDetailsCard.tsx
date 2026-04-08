@@ -1,12 +1,4 @@
-import { Button } from "@/components/ui/button"
-import {
-  CreditCard,
-  KeyRound,
-  Mail,
-  MessageSquare,
-  Phone,
-  Star,
-} from "lucide-react"
+import { Mail, Phone, Star } from "lucide-react"
 import type { PassengerUser } from "./types"
 
 interface PassengerDetailsCardProps {
@@ -26,104 +18,82 @@ export function PassengerDetailsCard({ user }: PassengerDetailsCardProps) {
     : user.passenger_profiles
   const totalRides = profile?.total_rides ?? 0
   const avgRating = profile?.avg_rating ?? null
+  const isActive = (user as any).is_active !== false
 
-  const memberSince = new Date(user.created_at).toLocaleDateString("en-US", {
+  const memberSince = new Date(user.created_at).toLocaleDateString("en-PH", {
     month: "short",
     year: "numeric",
   })
 
   return (
-    <div className="rounded-xl border bg-card p-6 shadow-sm">
-      <div className="flex flex-row justify-between items-center">
-        <div className="flex items-center gap-4">
-          <div
-            className="flex size-16 shrink-0 items-center justify-center rounded-full bg-muted text-2xl font-semibold text-muted-foreground"
-            aria-hidden
-          >
-            {initials}
-          </div>
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap gap-2">
-              <h2 className="text-xl font-semibold text-foreground">
-                {fullName}
-              </h2>
-              <div className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-                <span className="size-1.5 rounded-full bg-emerald-500" />
-                Active
-              </div>
-            </div>
-            <div className="flex flex-row gap-4">
-              {user.email ? (
-                <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <Mail className="size-4" aria-hidden />
-                  <span>{user.email}</span>
-                </p>
-              ) : null}
-              {user.phone ? (
-                <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <Phone className="size-4" aria-hidden />
-                  <span>{user.phone}</span>
-                </p>
-              ) : null}
-            </div>
-          </div>
+    <div
+      className="overflow-hidden rounded-xl bg-white"
+      style={{ border: "1px solid #DCE6F1", boxShadow: "0 1px 3px rgba(13,27,42,0.06)" }}
+    >
+      <div className="flex flex-col items-center gap-3 px-6 pt-6 pb-4">
+        <div
+          className={`flex size-20 shrink-0 items-center justify-center rounded-full bg-blue-50 text-2xl font-bold text-blue-700 ${
+            isActive
+              ? "ring-2 ring-emerald-400 ring-offset-2"
+              : "ring-2 ring-red-400 ring-offset-2"
+          }`}
+          aria-hidden
+        >
+          {initials}
         </div>
-        <div className="flex flex-row gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex h-auto flex-col items-center gap-1 py-2"
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-[#0D1B2A]" style={{ fontFamily: "var(--font-outfit, sans-serif)" }}>
+            {fullName}
+          </h2>
+          <span
+            className={`mt-1 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+              isActive
+                ? "bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0]"
+                : "bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA]"
+            }`}
           >
-            <MessageSquare className="size-4" aria-hidden />
-            <span>Message</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex h-auto flex-col items-center gap-1 py-2"
-          >
-            <KeyRound className="size-4" aria-hidden />
-            <span>Reset Password</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="col-span-2 flex h-auto flex-col items-center gap-1 py-2"
-          >
-            <CreditCard className="size-4" aria-hidden />
-            <span>Payment</span>
-          </Button>
+            {isActive ? "Active" : "Suspended"}
+          </span>
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 border-t justify-items-center pt-4 text-sm text-muted-foreground sm:grid-cols-3">
-        <div>
-          <p className="text-xs uppercase tracking-wide">Rating</p>
-          <p className="mt-1 inline-flex items-center gap-1 text-base font-semibold text-foreground">
-            {avgRating != null ? (
-              <>
-                <Star className="size-4 fill-amber-400 text-amber-400" aria-hidden />
-                {avgRating.toFixed(2)}{" "}
-                <span className="text-xs font-normal text-muted-foreground">
-                  ({totalRides} trips)
-                </span>
-              </>
-            ) : (
-              <span className="text-sm font-normal text-muted-foreground">N/A</span>
-            )}
+      <div className="space-y-2 border-t px-6 py-4" style={{ borderColor: "#EEF3F9" }}>
+        {user.email ? (
+          <p className="flex items-center gap-2 text-sm text-[#4A607A]">
+            <Mail className="size-4 text-[#8BACC8]" aria-hidden />
+            {user.email}
           </p>
+        ) : null}
+        {user.phone ? (
+          <p className="flex items-center gap-2 font-mono text-sm text-[#4A607A]">
+            <Phone className="size-4 text-[#8BACC8]" aria-hidden />
+            {user.phone}
+          </p>
+        ) : null}
+      </div>
+
+      <div
+        className="grid grid-cols-3 divide-x border-t"
+        style={{ borderColor: "#EEF3F9" }}
+      >
+        <div className="px-4 py-4 text-center">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-[#8BACC8]">Rating</p>
+          {avgRating != null && avgRating > 0 ? (
+            <p className="mt-1 flex items-center justify-center gap-1 font-mono text-lg font-bold text-[#0D1B2A]">
+              <Star className="size-4 fill-amber-400 text-amber-400" aria-hidden />
+              {avgRating.toFixed(2)}
+            </p>
+          ) : (
+            <p className="mt-1 text-sm text-[#8BACC8]">—</p>
+          )}
         </div>
-        <div>
-          <p className="text-xs uppercase tracking-wide">Member since</p>
-          <p className="mt-1 text-base font-medium text-foreground">
-            {memberSince}
-          </p>
+        <div className="px-4 py-4 text-center">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-[#8BACC8]">Trips</p>
+          <p className="mt-1 font-mono text-lg font-bold text-[#0D1B2A]">{totalRides}</p>
         </div>
-        <div>
-          <p className="text-xs uppercase tracking-wide">Total trips</p>
-          <p className="mt-1 text-base font-semibold text-foreground">
-            {totalRides}
-          </p>
+        <div className="px-4 py-4 text-center">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-[#8BACC8]">Since</p>
+          <p className="mt-1 text-sm font-semibold text-[#0D1B2A]">{memberSince}</p>
         </div>
       </div>
     </div>

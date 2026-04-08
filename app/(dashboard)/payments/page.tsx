@@ -1,5 +1,7 @@
 import { fetchPayouts } from "@/lib/supabase/queries"
 import { Badge } from "@/components/ui/badge"
+import { PageHeader } from "@/components/page-header"
+import { payoutStatusBadge } from "@/lib/badge-utils"
 import {
   Table,
   TableBody,
@@ -10,19 +12,6 @@ import {
 } from "@/components/ui/table"
 import { CreatePayoutButton } from "@/containers/payments/CreatePayoutButton"
 
-function payoutStatusClass(status: string) {
-  switch (status) {
-    case "paid":
-      return "bg-emerald-100 text-emerald-800"
-    case "pending":
-      return "bg-amber-100 text-amber-800"
-    case "failed":
-      return "bg-red-100 text-red-800"
-    default:
-      return "bg-gray-100 text-gray-800"
-  }
-}
-
 export default async function PaymentsPage() {
   let payouts: Awaited<ReturnType<typeof fetchPayouts>> = []
   try {
@@ -32,17 +21,14 @@ export default async function PaymentsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">Payments & Payouts</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage driver payout requests and payment history.
-          </p>
-        </div>
-        <CreatePayoutButton />
-      </div>
-
+    <div>
+      <PageHeader
+        title="Payments & Payouts"
+        subtitle="Manage driver payout requests and payment history"
+        breadcrumbs={["Business", "Payments"]}
+        actions={<CreatePayoutButton />}
+      />
+      <div className="space-y-6 p-7">
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -82,7 +68,7 @@ export default async function PaymentsPage() {
                     <TableCell>
                       <Badge
                         variant="secondary"
-                        className={payoutStatusClass(payout.status)}
+                        className={payoutStatusBadge(payout.status)}
                       >
                         {payout.status}
                       </Badge>
@@ -101,6 +87,7 @@ export default async function PaymentsPage() {
             )}
           </TableBody>
         </Table>
+      </div>
       </div>
     </div>
   )

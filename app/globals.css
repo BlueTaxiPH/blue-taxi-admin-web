@@ -48,37 +48,52 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+
+  /* Page canvas */
+  --background: #F4F6FB;
+  --foreground: #0D1B2A;
+
+  /* Cards */
+  --card: #FFFFFF;
+  --card-foreground: #0D1B2A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0D1B2A;
+
+  /* Brand blue */
+  --primary: #1A56DB;
+  --primary-foreground: #FFFFFF;
+
+  /* Secondary & accents */
+  --secondary: #EBF3FF;
+  --secondary-foreground: #1A56DB;
+  --muted: #EEF3F9;
+  --muted-foreground: #4A607A;
+  --accent: #EBF3FF;
+  --accent-foreground: #1A56DB;
+
+  --destructive: #DC2626;
+
+  /* Borders & inputs */
+  --border: #DCE6F1;
+  --input: #DCE6F1;
+  --ring: rgba(26, 86, 219, 0.3);
+
+  /* Chart colors */
+  --chart-1: #1A56DB;
+  --chart-2: #10B981;
+  --chart-3: #F59E0B;
+  --chart-4: #8B5CF6;
+  --chart-5: #EF4444;
+
+  /* Sidebar (deep navy) */
+  --sidebar: #0D1835;
+  --sidebar-foreground: #B8CCE0;
+  --sidebar-primary: #1A56DB;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: rgba(26, 86, 219, 0.18);
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: rgba(255, 255, 255, 0.07);
+  --sidebar-ring: rgba(59, 130, 246, 0.4);
 }
 
 .dark {
@@ -115,15 +130,6 @@
   --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
-/* Blue Taxi dashboard sidebar theme */
-[data-sidebar-theme="blue-taxi"] {
-  --sidebar: #1a202c;
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: #3182ce;
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-}
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -141,4 +147,48 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* ─── Auth Pages ─────────────────────────────────────── */
+.auth-grid-bg {
+  background-color: #050B18;
+  background-image: radial-gradient(rgba(59, 130, 246, 0.14) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+@keyframes auth-dot-pulse {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50%       { opacity: 1;    transform: scale(1.6); }
+}
+
+@keyframes auth-fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.auth-animate-in {
+  animation: auth-fade-in-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.auth-animate-in-delay-1 { animation-delay: 0.08s; }
+.auth-animate-in-delay-2 { animation-delay: 0.16s; }
+.auth-animate-in-delay-3 { animation-delay: 0.24s; }
+
+/* ─── Dashboard Brand Utilities ──────────────────────── */
+.bt-card {
+  background: #FFFFFF;
+  border: 1px solid #DCE6F1;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(13,27,42,0.06), 0 4px 12px rgba(13,27,42,0.04);
+}
+
+.bt-card:hover {
+  border-color: rgba(26, 86, 219, 0.2);
+  box-shadow: 0 1px 3px rgba(13,27,42,0.06), 0 4px 16px rgba(26,86,219,0.08);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.metric-card-hover:hover {
+  box-shadow: 0 4px 20px rgba(26, 86, 219, 0.1) !important;
+  border-color: rgba(26, 86, 219, 0.22) !important;
 }

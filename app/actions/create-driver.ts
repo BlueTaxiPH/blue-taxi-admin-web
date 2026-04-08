@@ -10,7 +10,7 @@ export interface CreateDriverInput {
   fullName: string;
   email: string;
   phone: string;
-  // password removed — driver sets their own via invite email
+  password: string;
   plateNumber?: string;
   vehicleMake?: string;
   vehicleModel?: string;
@@ -24,10 +24,10 @@ export type CreateDriverResult =
   | { success: true; driverId: string }
   | { success: false; error: string };
 
-const REQUIRED_FIELDS_MESSAGE = 'Full name, email, and phone are required.';
+const REQUIRED_FIELDS_MESSAGE = 'Full name, email, phone, and password are required.';
 const PROFILE_NOT_CREATED_MESSAGE =
   'Driver profile was not created automatically. Please retry.';
-const INVITE_FAILED_MESSAGE = 'Failed to send driver invite.';
+const AUTH_FAILED_MESSAGE = 'Failed to create driver account.';
 
 const YEAR_MIN = 1990;
 const YEAR_MAX = 2030;
@@ -50,8 +50,11 @@ function validateCreateDriverInput(
   const trimmedName = input.fullName.trim();
   const trimmedEmail = input.email.trim();
   const trimmedPhone = input.phone.trim();
-  if (!trimmedName || !trimmedEmail || !trimmedPhone) {
+  if (!trimmedName || !trimmedEmail || !trimmedPhone || !input.password) {
     return { valid: false, error: REQUIRED_FIELDS_MESSAGE };
+  }
+  if (input.password.length < 8) {
+    return { valid: false, error: 'Password must be at least 8 characters.' };
   }
   return { valid: true };
 }
@@ -65,30 +68,30 @@ function parseFullNameToFirstAndLast(
   return { firstName, lastName };
 }
 
-async function inviteDriverUser(
+async function createDriverUser(
   adminClient: SupabaseClient,
   params: {
     email: string;
-    normalizedPhone: string;
+    phone: string;
+    password: string;
     firstName: string;
     lastName: string;
   },
 ): Promise<{ userId: string } | { error: string }> {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? '';
-  const { data, error } = await adminClient.auth.admin.inviteUserByEmail(
-    params.email,
-    {
-      redirectTo: `${siteUrl}/driver-setup`,
-      data: {
-        role: 'driver',
-        first_name: params.firstName,
-        last_name: params.lastName,
-        phone: params.normalizedPhone,
-      },
+  const { data, error } = await adminClient.auth.admin.createUser({
+    email: params.email,
+    phone: params.phone,
+    password: params.password,
+    email_confirm: false,
+    user_metadata: {
+      role: 'driver',
+      first_name: params.firstName,
+      last_name: params.lastName,
+      phone: params.phone,
     },
-  );
+  });
   if (error || !data.user) {
-    return { error: error?.message ?? INVITE_FAILED_MESSAGE };
+    return { error: error?.message ?? AUTH_FAILED_MESSAGE };
   }
   return { userId: data.user.id };
 }
@@ -180,9 +183,10 @@ export async function createDriver(
   const normalizedPhone = normalizePhilippinePhone(input.phone);
   const adminClient = createAdminClient();
 
-  const authResult = await inviteDriverUser(adminClient, {
+  const authResult = await createDriverUser(adminClient, {
     email: input.email.trim(),
-    normalizedPhone,
+    phone: normalizedPhone,
+    password: input.password,
     firstName,
     lastName,
   });

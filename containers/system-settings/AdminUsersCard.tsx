@@ -46,10 +46,10 @@ const roleLabels: Record<AdminRole, string> = {
 }
 
 const statusBadgeClass: Record<string, string> = {
-  pending:  "bg-amber-100 text-amber-800 hover:bg-amber-100",
-  active:   "bg-green-100 text-green-800 hover:bg-green-100",
-  rejected: "bg-red-100 text-red-700 hover:bg-red-100",
-  inactive: "bg-gray-100 text-gray-600 hover:bg-gray-100",
+  pending:  "bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]",
+  active:   "bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0]",
+  rejected: "bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA]",
+  inactive: "bg-[#F9FAFB] text-[#6B7280] border border-[#E5E7EB]",
 }
 
 function getDisplayStatus(user: AdminUser): string {
@@ -57,7 +57,11 @@ function getDisplayStatus(user: AdminUser): string {
   return user.admin_status
 }
 
-export function AdminUsersCard({ users }: { users: AdminUser[] }) {
+interface AdminUsersCardProps {
+  users: AdminUser[]
+}
+
+export function AdminUsersCard({ users }: AdminUsersCardProps) {
   const router = useRouter()
   const [loadingKey, setLoadingKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -92,44 +96,106 @@ export function AdminUsersCard({ users }: { users: AdminUser[] }) {
   }
 
   return (
-    <section className="rounded-2xl border bg-card p-5 shadow-sm">
-      <div className="flex items-center gap-2">
-        <Users className="size-8 text-primary" aria-hidden />
+    <div
+      className="overflow-hidden rounded-xl bg-white"
+      style={{
+        border: "1px solid #DCE6F1",
+        boxShadow: "0 1px 3px rgba(13,27,42,0.06), 0 4px 12px rgba(13,27,42,0.04)",
+      }}
+    >
+      {/* Header */}
+      <div
+        className="flex items-center gap-3 px-5 py-4"
+        style={{ borderBottom: "1px solid #EEF3F9" }}
+      >
+        <Users className="size-5 text-[#1A56DB]" aria-hidden />
         <div>
-          <h2 className="text-lg font-semibold">Admin Users</h2>
-          <p className="text-sm text-muted-foreground">Manage admin accounts</p>
+          <p
+            className="text-sm font-semibold text-[#0D1B2A]"
+            style={{ fontFamily: "var(--font-outfit, sans-serif)" }}
+          >
+            Admin Users
+          </p>
+          <p className="text-xs text-[#4A607A]">
+            Manage admin accounts and permissions
+          </p>
         </div>
       </div>
 
       {error ? (
-        <p className="mt-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700 border border-red-200">
+        <div className="mx-5 mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600" style={{ border: "1px solid #FECACA" }}>
           {error}
-        </p>
+        </div>
       ) : null}
 
-      <div className="mt-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Name</TableHead>
-              <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Email</TableHead>
-              <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Phone</TableHead>
-              <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Role</TableHead>
-              <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Status</TableHead>
-              <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
+      <Table>
+        <TableHeader>
+          <TableRow style={{ borderColor: "#EEF3F9" }}>
+            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#8BACC8]">
+              Name
+            </TableHead>
+            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#8BACC8]">
+              Email
+            </TableHead>
+            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#8BACC8]">
+              Phone
+            </TableHead>
+            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#8BACC8]">
+              Role
+            </TableHead>
+            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#8BACC8]">
+              Status
+            </TableHead>
+            <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#8BACC8]">
+              Actions
+            </TableHead>
+          </TableRow>
+        </TableHeader>
 
-          <TableBody>
-            {users.map((user) => {
+        <TableBody>
+          {users.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={6} className="py-16 text-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex size-14 items-center justify-center rounded-full bg-[#F4F6FB]">
+                    <Users className="size-7 text-[#8BACC8]" aria-hidden />
+                  </div>
+                  <p className="text-sm font-medium text-[#0D1B2A]">No admin users found</p>
+                  <p className="text-xs text-[#8BACC8]">
+                    Try adjusting your search or filters
+                  </p>
+                </div>
+              </TableCell>
+            </TableRow>
+          ) : (
+            users.map((user) => {
               const displayStatus = getDisplayStatus(user)
               return (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">
-                    {user.first_name} {user.last_name}
+                <TableRow
+                  key={user.id}
+                  className="transition-colors hover:bg-[#F4F8FF]"
+                >
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+                        style={{ background: "#EBF3FF", color: "#1A56DB" }}
+                        aria-hidden
+                      >
+                        {(user.first_name?.[0] ?? "").toUpperCase()}
+                        {(user.last_name?.[0] ?? "").toUpperCase()}
+                      </div>
+                      <span className="text-sm font-medium text-[#0D1B2A]">
+                        {user.first_name} {user.last_name}
+                      </span>
+                    </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                  <TableCell className="text-muted-foreground">{user.phone}</TableCell>
+                  <TableCell className="text-sm text-[#4A607A]">
+                    {user.email}
+                  </TableCell>
+                  <TableCell className="font-mono text-sm text-[#4A607A]">
+                    {user.phone}
+                  </TableCell>
                   <TableCell>
                     {displayStatus === "active" ? (
                       <Select
@@ -142,17 +208,21 @@ export function AdminUsersCard({ users }: { users: AdminUser[] }) {
                         }
                         disabled={loadingKey === loadingId(user.id, "role")}
                       >
-                        <SelectTrigger className="h-8 w-[160px] text-sm">
+                        <SelectTrigger className="h-8 w-[160px] text-sm" style={{ borderColor: "#DCE6F1" }}>
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
                         <SelectContent>
-                          {(Object.entries(roleLabels) as [AdminRole, string][]).map(([id, label]) => (
-                            <SelectItem key={id} value={id}>{label}</SelectItem>
-                          ))}
+                          {(Object.entries(roleLabels) as [AdminRole, string][]).map(
+                            ([id, label]) => (
+                              <SelectItem key={id} value={id}>
+                                {label}
+                              </SelectItem>
+                            )
+                          )}
                         </SelectContent>
                       </Select>
                     ) : (
-                      <span className="text-sm text-muted-foreground">
+                      <span className="text-sm text-[#8BACC8]">
                         {user.admin_role ? roleLabels[user.admin_role] : "—"}
                       </span>
                     )}
@@ -164,7 +234,7 @@ export function AdminUsersCard({ users }: { users: AdminUser[] }) {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      {displayStatus === "pending" && (
+                      {displayStatus === "pending" ? (
                         <>
                           <Button
                             size="sm"
@@ -183,12 +253,14 @@ export function AdminUsersCard({ users }: { users: AdminUser[] }) {
                             }
                             disabled={loadingKey === loadingId(user.id, "reject")}
                           >
-                            {loadingKey === loadingId(user.id, "reject") ? "Rejecting…" : "Reject"}
+                            {loadingKey === loadingId(user.id, "reject")
+                              ? "Rejecting…"
+                              : "Reject"}
                           </Button>
                         </>
-                      )}
+                      ) : null}
 
-                      {displayStatus === "active" && (
+                      {displayStatus === "active" ? (
                         <Button
                           size="sm"
                           variant="outline"
@@ -199,11 +271,13 @@ export function AdminUsersCard({ users }: { users: AdminUser[] }) {
                           }
                           disabled={loadingKey === loadingId(user.id, "deactivate")}
                         >
-                          {loadingKey === loadingId(user.id, "deactivate") ? "Deactivating…" : "Deactivate"}
+                          {loadingKey === loadingId(user.id, "deactivate")
+                            ? "Deactivating…"
+                            : "Deactivate"}
                         </Button>
-                      )}
+                      ) : null}
 
-                      {displayStatus === "inactive" && (
+                      {displayStatus === "inactive" ? (
                         <Button
                           size="sm"
                           variant="outline"
@@ -214,28 +288,27 @@ export function AdminUsersCard({ users }: { users: AdminUser[] }) {
                           }
                           disabled={loadingKey === loadingId(user.id, "reactivate")}
                         >
-                          {loadingKey === loadingId(user.id, "reactivate") ? "Reactivating…" : "Reactivate"}
+                          {loadingKey === loadingId(user.id, "reactivate")
+                            ? "Reactivating…"
+                            : "Reactivate"}
                         </Button>
-                      )}
+                      ) : null}
                     </div>
                   </TableCell>
                 </TableRow>
               )
-            })}
-
-            {users.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                  No admin users found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            })
+          )}
+        </TableBody>
+      </Table>
 
       {/* Approve dialog */}
-      <Dialog open={approveTarget !== null} onOpenChange={(open) => { if (!open) setApproveTarget(null) }}>
+      <Dialog
+        open={approveTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setApproveTarget(null)
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Approve Admin User</DialogTitle>
@@ -249,7 +322,7 @@ export function AdminUsersCard({ users }: { users: AdminUser[] }) {
           </DialogHeader>
 
           <div className="grid gap-2 py-2">
-            <label className="text-sm font-medium text-foreground">Role</label>
+            <label className="text-sm font-medium text-[#0D1B2A]">Role</label>
             <Select
               value={selectedRole}
               onValueChange={(v) => setSelectedRole(v as AdminRole)}
@@ -258,9 +331,13 @@ export function AdminUsersCard({ users }: { users: AdminUser[] }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.entries(roleLabels) as [AdminRole, string][]).map(([id, label]) => (
-                  <SelectItem key={id} value={id}>{label}</SelectItem>
-                ))}
+                {(Object.entries(roleLabels) as [AdminRole, string][]).map(
+                  ([id, label]) => (
+                    <SelectItem key={id} value={id}>
+                      {label}
+                    </SelectItem>
+                  )
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -271,13 +348,19 @@ export function AdminUsersCard({ users }: { users: AdminUser[] }) {
             </Button>
             <Button
               onClick={handleApprove}
-              disabled={loadingKey === loadingId(approveTarget?.id ?? "", "approve")}
+              disabled={
+                loadingKey ===
+                loadingId(approveTarget?.id ?? "", "approve")
+              }
             >
-              {loadingKey === loadingId(approveTarget?.id ?? "", "approve") ? "Approving…" : "Approve"}
+              {loadingKey ===
+              loadingId(approveTarget?.id ?? "", "approve")
+                ? "Approving…"
+                : "Approve"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </section>
+    </div>
   )
 }

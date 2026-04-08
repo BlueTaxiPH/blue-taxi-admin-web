@@ -1,6 +1,6 @@
 "use client"
 
-import { Search, Layers } from "lucide-react"
+import { Search, Layers, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,6 +25,7 @@ interface DriverFiltersProps {
   onStatusChange: (value: string) => void
   onServiceChange: (value: string) => void
   onBulkActions?: () => void
+  onClearAll?: () => void
 }
 
 export function DriverFilters({
@@ -38,11 +39,21 @@ export function DriverFilters({
   onStatusChange,
   onServiceChange,
   onBulkActions,
+  onClearAll,
 }: DriverFiltersProps) {
+  const hasActiveFilters =
+    search !== "" || city !== "all" || status !== "all" || service !== "all"
+
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 border shadow-sm p-6 rounded-lg">
+    <div
+      className="flex flex-col gap-3 rounded-xl bg-white px-5 py-4 sm:flex-row sm:items-center sm:gap-4"
+      style={{
+        border: "1px solid #DCE6F1",
+        boxShadow: "0 1px 3px rgba(13,27,42,0.06)",
+      }}
+    >
       <div className="relative flex-1">
-        <Search className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="search"
           placeholder="Search drivers by name, phone, or ID..."
@@ -92,6 +103,17 @@ export function DriverFilters({
         <Layers className="size-4" />
         Bulk Actions
       </Button>
+      {hasActiveFilters ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClearAll}
+          className="shrink-0 gap-1.5 text-[#4A607A] hover:text-[#0D1B2A]"
+        >
+          <X className="size-3.5" />
+          Clear
+        </Button>
+      ) : null}
     </div>
   )
 }
