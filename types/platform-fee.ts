@@ -7,5 +7,5 @@ export interface PlatformFee {
   created_by: string | null;
   created_at: string;
   updated_at: string;
-  changed_by?: { first_name: string | null; last_name: string | null } | null;
+  changed_by?: { first_name: string | null; last_name: string | null }[] | null;
 }

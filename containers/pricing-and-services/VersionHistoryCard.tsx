@@ -19,7 +19,7 @@ function formatDate(dateString: string): string {
 }
 
 function getChangedByName(item: PlatformFee): string {
-  const changedBy = item.changed_by
+  const changedBy = item.changed_by?.[0]
   if (!changedBy) return "System"
   const name = [changedBy.first_name, changedBy.last_name].filter(Boolean).join(" ")
   return name || "Admin"
