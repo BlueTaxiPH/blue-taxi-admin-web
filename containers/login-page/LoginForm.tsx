@@ -17,15 +17,15 @@ type StatusMessage = {
 }
 
 const urlStatusMessages: Record<string, StatusMessage> = {
-  pending:  { type: "warning", text: "Your account is pending approval by a superadmin." },
-  rejected: { type: "error",   text: "Your access request was not approved." },
-  inactive: { type: "error",   text: "Your account has been deactivated. Contact a superadmin." },
+  pending: { type: "warning", text: "Your account is pending approval by a superadmin." },
+  rejected: { type: "error", text: "Your access request was not approved." },
+  inactive: { type: "error", text: "Your account has been deactivated. Contact a superadmin." },
 }
 
 const statusStyles: Record<StatusMessage["type"], string> = {
   warning: "bg-amber-500/10 border-amber-500/25 text-amber-300",
-  error:   "bg-red-500/10 border-red-500/25 text-red-400",
-  info:    "bg-blue-500/10 border-blue-500/25 text-blue-300",
+  error: "bg-red-500/10 border-red-500/25 text-red-400",
+  info: "bg-blue-500/10 border-blue-500/25 text-blue-300",
 }
 
 const cssVars = {
@@ -229,7 +229,7 @@ export function LoginForm({ initialStatus }: { initialStatus?: string }) {
       <div className="flex justify-center py-4">
         <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-[#2d4a6a]">
           <SecureBadgeIcon className="size-3.5 shrink-0" />
-          <span>Powered by ARSD Secure</span>
+          <span>Powered by Sentralian Software Services</span>
         </div>
       </div>
     </div>

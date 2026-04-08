@@ -2,7 +2,13 @@
 
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
-import { Plus } from "lucide-react"
+import {
+  Plus,
+  Users,
+  CheckCircle2,
+  AlertCircle,
+  Star,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/page-header"
 import type { Driver } from "@/types/driver"
@@ -11,7 +17,55 @@ import { DriverFilters } from "./DriverFilters"
 import { DriverTable } from "./DriverTable"
 import { DriverTablePagination } from "./DriverTablePagination"
 
-const PAGE_SIZE = 5
+const PAGE_SIZE = 10
+
+function DriverSummaryStats({ drivers }: { drivers: Driver[] }) {
+  const total = drivers.length
+  const active = drivers.filter((d) => d.status === "Active").length
+  const docIssues = drivers.filter(
+    (d) => d.docStatus === "Pending" || d.docStatus === "Rejected"
+  ).length
+  const rated = drivers.filter((d) => d.rating > 0)
+  const avgRating =
+    rated.length > 0
+      ? (rated.reduce((s, d) => s + d.rating, 0) / rated.length).toFixed(2)
+      : null
+
+  const stats = [
+    { label: "Total Drivers", value: String(total), accent: "#1A56DB", Icon: Users },
+    { label: "Active", value: String(active), accent: "#059669", Icon: CheckCircle2 },
+    { label: "Doc Issues", value: String(docIssues), accent: "#D97706", Icon: AlertCircle },
+    { label: "Avg Rating", value: avgRating ?? "\u2014", accent: "#F59E0B", Icon: Star },
+  ]
+
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {stats.map(({ label, value, accent }) => (
+        <div
+          key={label}
+          className="relative overflow-hidden rounded-xl bg-white px-4 py-3"
+          style={{
+            border: "1px solid #DCE6F1",
+            boxShadow: "0 1px 3px rgba(13,27,42,0.04)",
+          }}
+        >
+          <div
+            className="absolute left-0 top-0 h-full w-[3px]"
+            style={{ background: accent }}
+          />
+          <div className="pl-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#8BACC8]">
+              {label}
+            </p>
+            <p className="mt-0.5 font-mono text-2xl font-bold text-[#0D1B2A]">
+              {value}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 interface DriverManagementPageProps {
   initialDrivers?: Driver[]
@@ -56,7 +110,7 @@ export function DriverManagementPage({
   }, [filteredDrivers, safePage])
 
   return (
-    <div>
+    <div className="flex min-h-screen flex-col">
       <PageHeader
         title="Drivers"
         subtitle="Manage and verify all registered drivers"
@@ -77,54 +131,69 @@ export function DriverManagementPage({
           router.refresh()
         }}
       />
-    <div className="flex flex-col gap-6 p-6">
-      {fetchError ? (
-        <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {fetchError}
-        </div>
-      ) : null}
-      <DriverFilters
-        search={search}
-        city={city}
-        status={status}
-        service={service}
-        cities={cities}
-        onSearchChange={setSearch}
-        onCityChange={(v) => {
-          setCity(v)
-          setPage(1)
-        }}
-        onStatusChange={(v) => {
-          setStatus(v)
-          setPage(1)
-        }}
-        onServiceChange={(v) => {
-          setService(v)
-          setPage(1)
-        }}
-        onBulkActions={() => {}}
-      />
-      <div className="rounded-md border">
-        <DriverTable
-          drivers={paginatedDrivers}
-          selectedIds={selectedIds}
-          onSelectionChange={setSelectedIds}
-          onSelectAll={(checked) => {
-            if (checked) {
-              setSelectedIds(paginatedDrivers.map((d) => d.id))
-            } else {
-              setSelectedIds([])
-            }
+      <div className="flex flex-col gap-6 p-7">
+        {fetchError ? (
+          <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {fetchError}
+          </div>
+        ) : null}
+        <DriverSummaryStats drivers={initialDrivers} />
+        <DriverFilters
+          search={search}
+          city={city}
+          status={status}
+          service={service}
+          cities={cities}
+          onSearchChange={setSearch}
+          onCityChange={(v) => {
+            setCity(v)
+            setPage(1)
+          }}
+          onStatusChange={(v) => {
+            setStatus(v)
+            setPage(1)
+          }}
+          onServiceChange={(v) => {
+            setService(v)
+            setPage(1)
+          }}
+          onBulkActions={() => {}}
+          onClearAll={() => {
+            setSearch("")
+            setCity("all")
+            setStatus("all")
+            setService("all")
+            setPage(1)
           }}
         />
+        <div
+          className="overflow-hidden rounded-xl bg-white"
+          style={{
+            border: "1px solid #DCE6F1",
+            boxShadow:
+              "0 1px 3px rgba(13,27,42,0.06), 0 4px 12px rgba(13,27,42,0.04)",
+          }}
+        >
+          <DriverTable
+            drivers={paginatedDrivers}
+            selectedIds={selectedIds}
+            onSelectionChange={setSelectedIds}
+            onSelectAll={(checked) => {
+              if (checked) {
+                setSelectedIds(paginatedDrivers.map((d) => d.id))
+              } else {
+                setSelectedIds([])
+              }
+            }}
+          />
+        </div>
+        <DriverTablePagination
+          page={safePage}
+          pageSize={PAGE_SIZE}
+          totalCount={totalCount}
+          onPageChange={setPage}
+        />
       </div>
-      <DriverTablePagination
-        page={safePage}
-        pageSize={PAGE_SIZE}
-        totalCount={totalCount}
-        onPageChange={setPage}
-      />
-    </div>
     </div>
   )
 }

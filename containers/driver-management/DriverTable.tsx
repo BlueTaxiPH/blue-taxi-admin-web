@@ -7,6 +7,7 @@ import {
   Minus,
   Star,
   MoreHorizontal,
+  Users,
 } from "lucide-react"
 import type { Driver } from "@/types/driver"
 import { Badge } from "@/components/ui/badge"
@@ -38,6 +39,12 @@ interface DriverTableProps {
   selectedIds: string[]
   onSelectionChange: (ids: string[]) => void
   onSelectAll: (checked: boolean) => void
+}
+
+const STATUS_RING: Record<Driver["status"], string> = {
+  Active: "ring-2 ring-[#1A56DB] ring-offset-1",
+  Inactive: "ring-2 ring-gray-300 ring-offset-1",
+  Suspended: "ring-2 ring-red-400 ring-offset-1",
 }
 
 function ServiceBadge({ type }: { type: Driver["serviceType"] }) {
@@ -144,7 +151,7 @@ export function DriverTable({
                 if (el) el.indeterminate = someSelected && !allSelected
               }}
               onChange={() => toggleAll()}
-              className="size-4 rounded border-input accent-primary"
+              className="size-4 rounded border-input accent-blue-500"
             />
           </TableHead>
           <TableHead className="uppercase text-muted-foreground">Name</TableHead>
@@ -154,114 +161,160 @@ export function DriverTable({
           <TableHead className="uppercase text-muted-foreground">Status</TableHead>
           <TableHead className="uppercase text-muted-foreground">Doc Status</TableHead>
           <TableHead className="uppercase text-muted-foreground">Rating</TableHead>
-          <TableHead className="w-20 uppercase text-muted-foreground">Account</TableHead>
+          <TableHead className="w-20 uppercase text-muted-foreground">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody className="[&_td]:px-4 [&_td]:py-3">
-        {drivers.map((driver) => (
-          <TableRow key={driver.id}>
-            <TableCell>
-              <input
-                type="checkbox"
-                role="checkbox"
-                aria-label={`Select ${driver.name}`}
-                checked={selectedIds.includes(driver.id)}
-                onChange={() => toggleRow(driver.id)}
-                className="size-4 rounded border-input accent-primary"
-              />
-            </TableCell>
-            <TableCell>
-              <div className="flex items-center gap-3">
-                {driver.photoUrl ? (
-                  <img
-                    src={driver.photoUrl}
-                    alt={driver.name}
-                    className="size-9 shrink-0 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
-                    {driver.name.split(" ").map((n) => n[0]).join("")}
-                  </div>
-                )}
+        {drivers.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={9} className="py-16 text-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex size-14 items-center justify-center rounded-full bg-[#F4F6FB]">
+                  <Users className="size-7 text-[#8BACC8]" />
+                </div>
                 <div>
-                  <p className="font-medium">{driver.name}</p>
-                  <p className="text-xs text-muted-foreground">ID: #{driver.id}</p>
+                  <p className="text-sm font-medium text-[#0D1B2A]">
+                    No drivers found
+                  </p>
+                  <p className="mt-0.5 text-xs text-[#8BACC8]">
+                    Try adjusting your search or filters
+                  </p>
                 </div>
               </div>
             </TableCell>
-            <TableCell>{driver.phone}</TableCell>
-            <TableCell>{driver.city}</TableCell>
-            <TableCell>
-              <ServiceBadge type={driver.serviceType} />
-            </TableCell>
-            <TableCell>
-              <StatusCell status={driver.status} />
-            </TableCell>
-            <TableCell>
-              <DocStatusCell docStatus={driver.docStatus} />
-            </TableCell>
-            <TableCell>
-              <div className="flex items-center gap-1">
-                <Star className="size-4 fill-amber-400 text-amber-400" />
-                <span>{driver.rating.toFixed(2)}</span>
-              </div>
-            </TableCell>
-            <TableCell>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="size-8">
-                    <MoreHorizontal className="size-4" />
-                    <span className="sr-only">Account actions</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link href={`/drivers/${driver.supabaseId}`}>
-                      View Details
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  {driver.status !== "Active" ? (
-                    <DropdownMenuItem
-                      onClick={async () => {
-                        if (!driver.supabaseId) return
-                        const result = await approveDriver(driver.supabaseId, "approve")
-                        if (result.success) router.refresh()
-                      }}
-                    >
-                      Approve Driver
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem
-                      onClick={async () => {
-                        if (!driver.supabaseId) return
-                        const result = await suspendDriver(driver.supabaseId)
-                        if (result.success) router.refresh()
-                      }}
-                    >
-                      Suspend Driver
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    variant="destructive"
-                    onClick={async () => {
-                      if (!driver.supabaseId) return
-                      const confirmed = confirm(
-                        `Are you sure you want to delete ${driver.name}? This action cannot be undone.`
-                      )
-                      if (!confirmed) return
-                      const result = await deleteDriver(driver.supabaseId)
-                      if (result.success) router.refresh()
-                    }}
-                  >
-                    Delete Driver
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TableCell>
           </TableRow>
-        ))}
+        ) : (
+          drivers.map((driver) => (
+            <TableRow
+              key={driver.id}
+              className="cursor-pointer transition-colors hover:bg-[#F4F8FF]"
+              onClick={() => {
+                if (driver.supabaseId) router.push(`/drivers/${driver.supabaseId}`)
+              }}
+            >
+              <TableCell onClick={(e) => e.stopPropagation()}>
+                <input
+                  type="checkbox"
+                  role="checkbox"
+                  aria-label={`Select ${driver.name}`}
+                  checked={selectedIds.includes(driver.id)}
+                  onChange={() => toggleRow(driver.id)}
+                  className="size-4 rounded border-input accent-primary"
+                />
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-3">
+                  {driver.photoUrl ? (
+                    <img
+                      src={driver.photoUrl}
+                      alt={driver.name}
+                      className={cn(
+                        "size-9 shrink-0 rounded-full object-cover",
+                        STATUS_RING[driver.status]
+                      )}
+                    />
+                  ) : (
+                    <div
+                      className={cn(
+                        "flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700",
+                        STATUS_RING[driver.status]
+                      )}
+                    >
+                      {driver.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-medium">{driver.name}</p>
+                    <p className="font-mono text-xs text-muted-foreground">
+                      ID: #{driver.id}
+                    </p>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell className="font-mono text-sm">{driver.phone}</TableCell>
+              <TableCell>{driver.city}</TableCell>
+              <TableCell>
+                <ServiceBadge type={driver.serviceType} />
+              </TableCell>
+              <TableCell>
+                <StatusCell status={driver.status} />
+              </TableCell>
+              <TableCell>
+                <DocStatusCell docStatus={driver.docStatus} />
+              </TableCell>
+              <TableCell>
+                {driver.rating > 0 ? (
+                  <div className="flex items-center gap-1 font-mono">
+                    <Star className="size-4 fill-amber-400 text-amber-400" />
+                    <span>{driver.rating.toFixed(2)}</span>
+                  </div>
+                ) : (
+                  <span className="text-[#8BACC8]">{"\u2014"}</span>
+                )}
+              </TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="size-8">
+                      <MoreHorizontal className="size-4" />
+                      <span className="sr-only">Driver actions</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                      <Link href={`/drivers/${driver.supabaseId}`}>
+                        View Details
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {driver.status !== "Active" ? (
+                      <DropdownMenuItem
+                        onClick={async () => {
+                          if (!driver.supabaseId) return
+                          const result = await approveDriver(
+                            driver.supabaseId,
+                            "approve"
+                          )
+                          if (result.success) router.refresh()
+                        }}
+                      >
+                        Approve Driver
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem
+                        onClick={async () => {
+                          if (!driver.supabaseId) return
+                          const result = await suspendDriver(driver.supabaseId)
+                          if (result.success) router.refresh()
+                        }}
+                      >
+                        Suspend Driver
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={async () => {
+                        if (!driver.supabaseId) return
+                        const confirmed = confirm(
+                          `Are you sure you want to delete ${driver.name}? This action cannot be undone.`
+                        )
+                        if (!confirmed) return
+                        const result = await deleteDriver(driver.supabaseId)
+                        if (result.success) router.refresh()
+                      }}
+                    >
+                      Delete Driver
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))
+        )}
       </TableBody>
     </Table>
   )
