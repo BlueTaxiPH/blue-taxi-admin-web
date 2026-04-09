@@ -27,6 +27,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { logout } from "@/app/actions/logout"
+import type { RolePermissions } from "@/lib/auth/permissions"
 
 const dashboardItem = { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard }
 
@@ -34,31 +35,44 @@ const navGroups = [
   {
     label: "OPERATIONS",
     items: [
-      { label: "Drivers", href: "/drivers", icon: Users },
-      { label: "Passengers", href: "/passengers", icon: User },
-      { label: "Trip Management", href: "/trip-management", icon: Briefcase },
-      { label: "Pricing and Services", href: "/pricing-and-services", icon: Tag },
+      { label: "Drivers",              href: "/drivers",              icon: Users,     module: "drivers" },
+      { label: "Passengers",           href: "/passengers",           icon: User,      module: "passengers" },
+      { label: "Trip Management",      href: "/trip-management",      icon: Briefcase, module: "trips" },
+      { label: "Pricing and Services", href: "/pricing-and-services", icon: Tag,       module: "system_config" },
     ],
   },
   {
     label: "BUSINESS",
     items: [
-      { label: "Payments", href: "/payments", icon: CreditCard },
-      { label: "Insurance Reports", href: "/insurance-reports", icon: FileText },
+      { label: "Payments",         href: "/payments",         icon: CreditCard, module: "payments" },
+      { label: "Insurance Reports", href: "/insurance-reports", icon: FileText,  module: "insurance_reports" },
     ],
   },
-] as const
+]
 
 interface AppSidebarProps {
   adminName?: string
   adminRole?: string
+  permissions?: RolePermissions
 }
 
 export function AppSidebar({
   adminName = "Admin User",
   adminRole = "Global Admin",
+  permissions,
 }: AppSidebarProps) {
   const pathname = usePathname()
+
+  const visibleGroups = navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) => !permissions || permissions[item.module] !== false
+      ),
+    }))
+    .filter((group) => group.items.length > 0)
+
+  const showSystemSettings = !permissions || permissions["system_config"] !== false
 
   return (
     <Sidebar side="left" className="border-white/10">
@@ -100,7 +114,7 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {navGroups.map((group) => (
+        {visibleGroups.map((group) => (
           <SidebarGroup key={group.label}>
             <SidebarGroupLabel className="px-4 text-[10px] font-bold uppercase tracking-[0.18em] text-[#2E4A6A]">
               {group.label}
@@ -123,20 +137,22 @@ export function AppSidebar({
         ))}
 
         <div className="min-h-0 flex-1" aria-hidden />
-        <SidebarGroup className="pb-4">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/system-settings"} className="h-10">
-                  <Link href="/system-settings">
-                    <Settings className="size-5 shrink-0" />
-                    <span>System Settings</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {showSystemSettings ? (
+          <SidebarGroup className="pb-4">
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname === "/system-settings"} className="h-10">
+                    <Link href="/system-settings">
+                      <Settings className="size-5 shrink-0" />
+                      <span>System Settings</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : null}
       </SidebarContent>
 
       <SidebarFooter style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>

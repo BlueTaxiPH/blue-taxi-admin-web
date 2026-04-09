@@ -3,6 +3,7 @@
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/admin-client';
 import { revalidatePath } from 'next/cache';
+import { requirePermission } from '@/lib/auth/permissions';
 
 export type CityActionResult =
   | { success: true }
@@ -15,6 +16,9 @@ export async function createCity(
 ): Promise<CityActionResult> {
   const auth = await requireAdmin();
   if ('error' in auth) return { success: false, error: auth.error };
+
+  const permCheck = await requirePermission(auth.user.id, 'system_config');
+  if (permCheck) return { success: false, error: permCheck.error };
 
   const trimmed = name.trim();
   if (!trimmed) return { success: false, error: 'City name is required.' };
@@ -57,6 +61,9 @@ export async function updateCity(
   const auth = await requireAdmin();
   if ('error' in auth) return { success: false, error: auth.error };
 
+  const permCheck = await requirePermission(auth.user.id, 'system_config');
+  if (permCheck) return { success: false, error: permCheck.error };
+
   const trimmed = name.trim();
   if (!trimmed) return { success: false, error: 'City name is required.' };
 
@@ -80,6 +87,9 @@ export async function deleteCity(
 ): Promise<CityActionResult> {
   const auth = await requireAdmin();
   if ('error' in auth) return { success: false, error: auth.error };
+
+  const permCheck = await requirePermission(auth.user.id, 'system_config');
+  if (permCheck) return { success: false, error: permCheck.error };
 
   const adminClient = createAdminClient();
 

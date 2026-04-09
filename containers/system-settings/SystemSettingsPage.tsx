@@ -14,11 +14,13 @@ type City = Awaited<ReturnType<typeof fetchCitiesWithCoords>>[number]
 interface SystemSettingsPageProps {
   adminUsers: AdminUser[]
   cities: City[]
+  isSuperAdmin: boolean
 }
 
 export function SystemSettingsPage({
   adminUsers,
   cities,
+  isSuperAdmin,
 }: SystemSettingsPageProps) {
   return (
     <div className="flex min-h-screen flex-col">
@@ -51,7 +53,7 @@ export function SystemSettingsPage({
             <CityManagementTab cities={cities} />
           </TabsContent>
           <TabsContent value="access">
-            <AccessControlTab />
+            <AccessControlTab isSuperAdmin={isSuperAdmin} />
           </TabsContent>
           <TabsContent value="admins">
             <AdminUsersTab users={adminUsers} />

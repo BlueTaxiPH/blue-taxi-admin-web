@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin-client';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { revalidatePath } from 'next/cache';
+import { requirePermission } from '@/lib/auth/permissions';
 
 export interface UpdateDriverInput {
   driverProfileId: string;
@@ -30,6 +31,9 @@ export async function updateDriver(
 ): Promise<UpdateDriverResult> {
   const auth = await requireAdmin();
   if ('error' in auth) return { success: false, error: auth.error };
+
+  const permCheck = await requirePermission(auth.user.id, 'drivers');
+  if (permCheck) return { success: false, error: permCheck.error };
 
   const adminClient = createAdminClient();
 

@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin-client';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { revalidatePath } from 'next/cache';
+import { requirePermission } from '@/lib/auth/permissions';
 
 export type UpdatePlatformFeeResult =
   | { success: true }
@@ -17,6 +18,9 @@ export async function updatePlatformFee(
 ): Promise<UpdatePlatformFeeResult> {
   const auth = await requireAdmin();
   if ('error' in auth) return { success: false, error: auth.error };
+
+  const permCheck = await requirePermission(auth.user.id, 'system_config');
+  if (permCheck) return { success: false, error: permCheck.error };
 
   if (platformAmount < 0) return { success: false, error: 'Platform fee must be >= 0.' };
   if (insuranceAmount < 0) return { success: false, error: 'Insurance fee must be >= 0.' };

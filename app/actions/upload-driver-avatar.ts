@@ -3,6 +3,7 @@
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/admin-client';
 import { revalidatePath } from 'next/cache';
+import { requirePermission } from '@/lib/auth/permissions';
 
 export type UploadAvatarResult =
   | { success: true; url: string }
@@ -15,6 +16,9 @@ export async function uploadDriverAvatar(
 ): Promise<UploadAvatarResult> {
   const authResult = await requireAdmin();
   if ('error' in authResult) return { success: false, error: authResult.error };
+
+  const permCheck = await requirePermission(authResult.user.id, 'drivers');
+  if (permCheck) return { success: false, error: permCheck.error };
 
   const file = formData.get('file') as File | null;
   if (!file) return { success: false, error: 'No file provided.' };

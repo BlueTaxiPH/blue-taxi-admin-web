@@ -7,6 +7,7 @@ import {
   success,
   revalidateDriversPath,
 } from '@/lib/actions/result';
+import { requirePermission } from '@/lib/auth/permissions';
 
 export type VerifyDocumentResult =
   | { success: true }
@@ -19,6 +20,9 @@ export async function verifyDocument(
 ): Promise<VerifyDocumentResult> {
   const auth = await requireAdmin();
   if ('error' in auth) return failure(auth.error);
+
+  const permCheck = await requirePermission(auth.user.id, 'drivers');
+  if (permCheck) return failure(permCheck.error);
 
   if (action === 'reject' && (!rejectionReason || rejectionReason.trim().length === 0)) {
     return failure('A rejection reason is required.');
