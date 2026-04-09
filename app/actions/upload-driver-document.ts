@@ -32,8 +32,6 @@ export async function uploadDriverDocument(
     .from('driver-uploads')
     .getPublicUrl(filePath);
 
-  const now = new Date().toISOString();
-
   // Upsert on (driver_id, document_type) — eliminates the SELECT + conditional
   // UPDATE/INSERT race condition
   const { error } = await adminClient
@@ -43,9 +41,9 @@ export async function uploadDriverDocument(
         driver_id: driverId,
         document_type: documentType,
         file_url: publicUrl,
-        is_verified: true,
-        verified_by: authResult.user.id,
-        verified_at: now,
+        is_verified: false,
+        verified_by: null,
+        verified_at: null,
         rejection_reason: null,
       },
       { onConflict: 'driver_id,document_type' },

@@ -130,7 +130,6 @@ export async function fetchDriverById(supabaseId: string) {
     .select("id, status, final_fare, estimated_fare, created_at, trip_completed_at, pickup_address, dropoff_address")
     .eq("driver_id", driverUserId)
     .order("created_at", { ascending: false })
-    .limit(10)
 
   return {
     driver: mapDriverRowToDriver(data as unknown as DriverRow),
@@ -255,6 +254,7 @@ export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
     completedRes,
     revenueRes,
     totalRes,
+    activeRideStatusRes,
   ] = await Promise.all([
     supabase
       .from("driver_profiles")
@@ -287,7 +287,20 @@ export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
     supabase
       .from("driver_profiles")
       .select("id", { count: "exact", head: true }),
+    supabase
+      .from("rides")
+      .select("status")
+      .in("status", [
+        "pending", "accepted", "navigating_to_pickup", "arrived_at_pickup",
+        "waiting_for_passenger", "trip_in_progress", "dropped_off",
+        "input_fare", "fare_confirmed",
+      ]),
   ])
+
+  const tripsByStatus: Record<string, number> = {}
+  for (const row of activeRideStatusRes.data ?? []) {
+    tripsByStatus[row.status] = (tripsByStatus[row.status] ?? 0) + 1
+  }
 
   const revenueToday = (revenueRes.data ?? []).reduce(
     (sum: number, r: { final_fare: number | null }) => sum + (r.final_fare ?? 0),
@@ -301,6 +314,7 @@ export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
     completedToday: completedRes.count ?? 0,
     revenueToday,
     totalDrivers: totalRes.count ?? 0,
+    tripsByStatus,
   }
 }
 

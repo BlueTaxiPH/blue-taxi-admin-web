@@ -192,3 +192,14 @@
   box-shadow: 0 4px 20px rgba(26, 86, 219, 0.1) !important;
   border-color: rgba(26, 86, 219, 0.22) !important;
 }
+
+@keyframes dash-fade-in-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.dash-animate-in {
+  animation: dash-fade-in-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dash-animate-in { animation: none; }
+}

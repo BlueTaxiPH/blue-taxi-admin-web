@@ -143,9 +143,15 @@ export function EditDriverForm({ driver, cities }: EditDriverFormProps) {
   }
 
   return (
-    <div className="rounded-lg border bg-card p-5 space-y-4">
+    <div
+      className="overflow-hidden rounded-xl bg-white p-5 space-y-4"
+      style={{ border: "1px solid #DCE6F1", boxShadow: "0 1px 3px rgba(13,27,42,0.06)" }}
+    >
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold text-sm uppercase text-muted-foreground tracking-wider">
+        <h2
+          className="font-semibold text-[#0D1B2A]"
+          style={{ fontFamily: "var(--font-outfit, sans-serif)" }}
+        >
           Driver Profile
         </h2>
         {isEditing ? (
