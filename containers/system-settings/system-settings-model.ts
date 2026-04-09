@@ -1,6 +1,7 @@
 export const MODULES = [
   { id: "trips",             label: "Trips" },
   { id: "drivers",           label: "Drivers" },
+  { id: "passengers",        label: "Passengers" },
   { id: "payments",          label: "Payments" },
   { id: "system_config",     label: "System Config" },
   { id: "analytics",         label: "Analytics" },
@@ -25,6 +26,7 @@ export const INITIAL_ROLES: Role[] = [
 export const INITIAL_PERMISSIONS: PermissionsState = {
   trips:             { superadmin: true,  blue_taxi_admin: true,  insurance_admin: false },
   drivers:           { superadmin: true,  blue_taxi_admin: true,  insurance_admin: false },
+  passengers:        { superadmin: true,  blue_taxi_admin: true,  insurance_admin: false },
   payments:          { superadmin: true,  blue_taxi_admin: true,  insurance_admin: false },
   system_config:     { superadmin: true,  blue_taxi_admin: false, insurance_admin: false },
   analytics:         { superadmin: true,  blue_taxi_admin: true,  insurance_admin: false },

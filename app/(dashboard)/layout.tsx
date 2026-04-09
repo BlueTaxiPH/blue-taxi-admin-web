@@ -1,8 +1,10 @@
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { createClient } from "@/lib/supabase/server"
+import { fetchAdminPermissions, getModuleForPath } from "@/lib/auth/permissions"
 import type { AdminRole } from "@/types/admin-user"
 
 const roleLabels: Record<AdminRole, string> = {
@@ -43,6 +45,24 @@ export default async function DashboardLayout({
     adminRole = profile.admin_role
       ? roleLabels[profile.admin_role as AdminRole] ?? "Admin"
       : "Admin"
+
+    // Enforce RBAC: redirect to /dashboard if the current route is blocked
+    const permissions = await fetchAdminPermissions(profile.admin_role as string | null)
+    const headersList = await headers()
+    const pathname = headersList.get("x-pathname") ?? ""
+    const currentModule = getModuleForPath(pathname)
+    if (currentModule && !permissions[currentModule]) {
+      redirect("/dashboard")
+    }
+
+    return (
+      <SidebarProvider>
+        <div className="flex min-h-screen w-full">
+          <AppSidebar adminName={adminName} adminRole={adminRole} permissions={permissions} />
+          <SidebarInset>{children}</SidebarInset>
+        </div>
+      </SidebarProvider>
+    )
   }
 
   return (

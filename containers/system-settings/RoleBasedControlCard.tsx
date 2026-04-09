@@ -21,12 +21,14 @@ interface RoleBasedControlCardProps {
   roles: Role[]
   permissionsByModule: PermissionsState
   onUpdatePermission: (moduleId: ModuleId, roleId: string, next: boolean) => void
+  readonly?: boolean
 }
 
 export function RoleBasedControlCard({
   roles,
   permissionsByModule,
   onUpdatePermission,
+  readonly = false,
 }: RoleBasedControlCardProps) {
   return (
     <div
@@ -91,6 +93,8 @@ export function RoleBasedControlCard({
                       onChange={(e) =>
                         onUpdatePermission(module.id, role.id, e.target.checked)
                       }
+                      disabled={readonly}
+                      style={readonly ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
                     />
                   </div>
                 </TableCell>

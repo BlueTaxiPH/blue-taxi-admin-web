@@ -3,6 +3,7 @@
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { createAdminClient } from '@/lib/supabase/admin-client';
 import { revalidatePath } from 'next/cache';
+import { requirePermission } from '@/lib/auth/permissions';
 
 export type UploadDocumentResult =
   | { success: true }
@@ -15,6 +16,9 @@ export async function uploadDriverDocument(
 ): Promise<UploadDocumentResult> {
   const authResult = await requireAdmin();
   if ('error' in authResult) return { success: false, error: authResult.error };
+
+  const permCheck = await requirePermission(authResult.user.id, 'drivers');
+  if (permCheck) return { success: false, error: permCheck.error };
 
   const file = formData.get('file') as File | null;
   if (!file) return { success: false, error: 'No file provided' };
@@ -32,8 +36,6 @@ export async function uploadDriverDocument(
     .from('driver-uploads')
     .getPublicUrl(filePath);
 
-  const now = new Date().toISOString();
-
   // Upsert on (driver_id, document_type) — eliminates the SELECT + conditional
   // UPDATE/INSERT race condition
   const { error } = await adminClient
@@ -43,9 +45,9 @@ export async function uploadDriverDocument(
         driver_id: driverId,
         document_type: documentType,
         file_url: publicUrl,
-        is_verified: true,
-        verified_by: authResult.user.id,
-        verified_at: now,
+        is_verified: false,
+        verified_by: null,
+        verified_at: null,
         rejection_reason: null,
       },
       { onConflict: 'driver_id,document_type' },

@@ -5,13 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin-client';
 import { failure, success, revalidateDriversPath } from '@/lib/actions/result';
 import { requirePermission } from '@/lib/auth/permissions';
 
-export type SuspendDriverResult =
-  | { success: true }
-  | { success: false; error: string };
-
-export async function suspendDriver(
-  driverId: string,
-): Promise<SuspendDriverResult> {
+export async function setDriverUnderReview(driverId: string) {
   const authResult = await requireAdmin();
   if ('error' in authResult) return failure(authResult.error);
 
@@ -21,7 +15,7 @@ export async function suspendDriver(
   const adminClient = createAdminClient();
   const { error } = await adminClient
     .from('driver_profiles')
-    .update({ verification_status: 'suspended' })
+    .update({ verification_status: 'under_review' })
     .eq('id', driverId);
 
   if (error) return failure(error.message);

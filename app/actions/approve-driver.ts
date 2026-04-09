@@ -8,6 +8,7 @@ import {
   success,
   revalidateDriversPath,
 } from '@/lib/actions/result';
+import { requirePermission } from '@/lib/auth/permissions';
 
 export type ApproveDriverResult =
   | { success: true }
@@ -34,6 +35,9 @@ export async function approveDriver(
 ): Promise<ApproveDriverResult> {
   const authResult = await requireAdmin();
   if ('error' in authResult) return failure(authResult.error);
+
+  const permCheck = await requirePermission(authResult.user.id, 'drivers');
+  if (permCheck) return failure(permCheck.error);
 
   const updatePayload = buildDriverVerificationUpdate(action, authResult.user.id);
   const adminClient = createAdminClient();

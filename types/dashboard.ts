@@ -5,4 +5,5 @@ export interface DashboardMetrics {
   completedToday: number;
   revenueToday: number;
   totalDrivers: number;
+  tripsByStatus: Record<string, number>;
 }
