@@ -68,11 +68,12 @@ export function DriverDocumentCard({ documents, driverId, allDocumentTypes }: Dr
       <div className="divide-y" style={{ borderColor: '#EEF3F9' }}>
         {types.map((docType) => {
           const doc = documents.find((d) => d.document_type === docType);
+          const isRejecting = !!doc && rejectingId === doc.id;
 
           return (
             <div
               key={docType}
-              className="flex items-start justify-between gap-4 px-6 py-4"
+              className="flex flex-col gap-3 px-6 py-4 md:flex-row md:items-start md:justify-between md:gap-4"
             >
               <div className="flex items-start gap-3 flex-1 min-w-0">
                 <FileText className="mt-0.5 size-4 shrink-0 text-[#8BACC8]" aria-hidden />
@@ -103,7 +104,13 @@ export function DriverDocumentCard({ documents, driverId, allDocumentTypes }: Dr
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div
+                className={
+                  isRejecting
+                    ? 'flex w-full flex-col gap-2 sm:flex-row sm:items-center md:w-auto md:flex-nowrap'
+                    : 'flex flex-wrap items-center gap-2 md:shrink-0'
+                }
+              >
                 {doc ? (
                   doc.is_verified ? (
                     <span className="inline-flex items-center rounded-full bg-[#ECFDF5] px-2.5 py-0.5 text-xs font-medium text-[#059669] border border-[#A7F3D0]">
@@ -115,30 +122,32 @@ export function DriverDocumentCard({ documents, driverId, allDocumentTypes }: Dr
                     </span>
                   ) : (
                     <>
-                      {rejectingId === doc.id ? (
-                        <div className="flex items-center gap-2">
+                      {isRejecting ? (
+                        <>
                           <Input
                             placeholder="Rejection reason"
                             value={rejectionReason}
                             onChange={(e) => setRejectionReason(e.target.value)}
-                            className="h-8 w-48 text-xs"
+                            className="h-8 w-full text-xs sm:w-48"
                           />
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            disabled={pending === doc.id}
-                            onClick={() => void handleReject(doc.id)}
-                          >
-                            Confirm
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => { setRejectingId(null); setRejectionReason(''); }}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              disabled={pending === doc.id}
+                              onClick={() => void handleReject(doc.id)}
+                            >
+                              Confirm
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => { setRejectingId(null); setRejectionReason(''); }}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </>
                       ) : (
                         <>
                           <Button

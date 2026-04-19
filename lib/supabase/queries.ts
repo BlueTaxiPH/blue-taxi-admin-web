@@ -185,7 +185,24 @@ export async function fetchCompletedRides() {
   return data ?? []
 }
 
-export async function fetchPayouts() {
+export interface PayoutSummary {
+  id: string
+  driver_id: string | null
+  total_amount: number | string | null
+  status: string
+  created_at: string
+  processed_at: string | null
+  driver_profiles: {
+    id: string
+    users: {
+      first_name: string | null
+      last_name: string | null
+      phone: string | null
+    } | null
+  } | null
+}
+
+export async function fetchPayouts(): Promise<PayoutSummary[]> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -201,7 +218,131 @@ export async function fetchPayouts() {
     .limit(100)
 
   if (error) throw error
-  return data ?? []
+
+  type Raw = {
+    id: string
+    driver_id: string | null
+    total_amount: number | string | null
+    status: string
+    created_at: string
+    processed_at: string | null
+    driver_profiles:
+      | Array<{
+          id: string
+          users:
+            | Array<{ first_name: string | null; last_name: string | null; phone: string | null }>
+            | { first_name: string | null; last_name: string | null; phone: string | null }
+            | null
+        }>
+      | { id: string; users: unknown } | null
+  }
+
+  return ((data ?? []) as unknown as Raw[]).map((row) => {
+    const profileRaw = Array.isArray(row.driver_profiles)
+      ? row.driver_profiles[0] ?? null
+      : row.driver_profiles
+    const userRaw = profileRaw
+      ? (Array.isArray((profileRaw as { users: unknown }).users)
+          ? ((profileRaw as { users: Array<{ first_name: string | null; last_name: string | null; phone: string | null }> }).users[0] ?? null)
+          : ((profileRaw as { users: { first_name: string | null; last_name: string | null; phone: string | null } | null }).users ?? null))
+      : null
+    return {
+      id: row.id,
+      driver_id: row.driver_id,
+      total_amount: row.total_amount,
+      status: row.status,
+      created_at: row.created_at,
+      processed_at: row.processed_at,
+      driver_profiles: profileRaw
+        ? {
+            id: (profileRaw as { id: string }).id,
+            users: userRaw,
+          }
+        : null,
+    }
+  })
+}
+
+export interface PayoutMetrics {
+  totalPending: number
+  paidThisMonth: number
+  avgPaidThisMonth: number
+  successRate: number
+  successRateDenominator: number
+}
+
+export async function fetchPayoutMetrics(): Promise<PayoutMetrics> {
+  const supabase = await createClient()
+  const monthStart = new Date()
+  monthStart.setDate(1)
+  monthStart.setHours(0, 0, 0, 0)
+
+  const [pendingRes, paidMonthRes, resolvedRes] = await Promise.all([
+    supabase
+      .from("driver_payouts")
+      .select("total_amount")
+      .eq("status", "pending")
+      .limit(10000),
+    supabase
+      .from("driver_payouts")
+      .select("total_amount")
+      .eq("status", "paid")
+      .gte("processed_at", monthStart.toISOString())
+      .limit(10000),
+    supabase
+      .from("driver_payouts")
+      .select("status")
+      .in("status", ["paid", "failed"])
+      .limit(10000),
+  ])
+
+  const totalPending = (pendingRes.data ?? []).reduce(
+    (sum: number, r: { total_amount: number | null }) => sum + Number(r.total_amount ?? 0),
+    0,
+  )
+  const paidAmounts = (paidMonthRes.data ?? []).map(
+    (r: { total_amount: number | null }) => Number(r.total_amount ?? 0),
+  )
+  const paidThisMonth = paidAmounts.reduce((sum, n) => sum + n, 0)
+  const avgPaidThisMonth = paidAmounts.length > 0 ? paidThisMonth / paidAmounts.length : 0
+
+  const resolved = resolvedRes.data ?? []
+  const successRateDenominator = resolved.length
+  const successCount = resolved.filter(
+    (r: { status: string }) => r.status === "paid",
+  ).length
+  const successRate = successRateDenominator > 0 ? successCount / successRateDenominator : 0
+
+  return { totalPending, paidThisMonth, avgPaidThisMonth, successRate, successRateDenominator }
+}
+
+export interface ApprovedDriverOption {
+  id: string
+  name: string
+  phone: string | null
+}
+
+export async function fetchApprovedDriversForPayout(): Promise<ApprovedDriverOption[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("driver_profiles")
+    .select(`
+      id,
+      users!user_id(first_name, last_name, phone)
+    `)
+    .eq("verification_status", "approved")
+    .order("created_at", { ascending: false })
+    .limit(500)
+
+  if (error) throw error
+
+  return (data ?? []).map((row) => {
+    const u = (row as unknown as { users: { first_name: string | null; last_name: string | null; phone: string | null } | null }).users
+    const first = u?.first_name ?? ""
+    const last = u?.last_name ?? ""
+    const name = [first, last].filter(Boolean).join(" ") || "Unknown driver"
+    return { id: (row as { id: string }).id, name, phone: u?.phone ?? null }
+  })
 }
 
 export async function fetchActivePlatformFee() {
@@ -374,6 +515,21 @@ export async function fetchCities() {
     .order("name", { ascending: true })
   if (error) throw error
   return data ?? []
+}
+
+// Public landing page helper. Uses admin client because the visitor is unauthenticated
+// and the cities list is non-sensitive public info (names only).
+export async function fetchActiveCityNamesForLanding(): Promise<string[]> {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from("cities")
+    .select("name")
+    .eq("is_active", true)
+    .order("name", { ascending: true })
+  if (error) throw error
+  return (data ?? [])
+    .map((row: { name: string | null }) => (row.name ?? "").trim())
+    .filter((name): name is string => name.length > 0)
 }
 
 export async function fetchCityServices(cityId: string) {

@@ -7,14 +7,6 @@ import { Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -38,6 +30,8 @@ import {
   reactivateAdminUser,
 } from "@/app/actions/update-admin-user"
 import type { AdminUser, AdminRole } from "@/types/admin-user"
+
+import { ApproveAdminDialog } from "./ApproveAdminDialog"
 
 const roleLabels: Record<AdminRole, string> = {
   superadmin: "Superadmin",
@@ -66,7 +60,6 @@ export function AdminUsersCard({ users }: AdminUsersCardProps) {
   const [loadingKey, setLoadingKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [approveTarget, setApproveTarget] = useState<AdminUser | null>(null)
-  const [selectedRole, setSelectedRole] = useState<AdminRole>("blue_taxi_admin")
 
   function loadingId(userId: string, action: string) {
     return `${userId}:${action}`
@@ -87,13 +80,17 @@ export function AdminUsersCard({ users }: AdminUsersCardProps) {
     }
   }
 
-  async function handleApprove() {
+  async function handleApprove(role: AdminRole) {
     if (!approveTarget) return
     await runAction(loadingId(approveTarget.id, "approve"), () =>
-      approveAdminUser(approveTarget.id, selectedRole)
+      approveAdminUser(approveTarget.id, role)
     )
     setApproveTarget(null)
   }
+
+  const approveLoading =
+    approveTarget !== null &&
+    loadingKey === loadingId(approveTarget.id, "approve")
 
   return (
     <div
@@ -302,65 +299,12 @@ export function AdminUsersCard({ users }: AdminUsersCardProps) {
         </TableBody>
       </Table>
 
-      {/* Approve dialog */}
-      <Dialog
-        open={approveTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setApproveTarget(null)
-        }}
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Approve Admin User</DialogTitle>
-            <DialogDescription>
-              Select a role for{" "}
-              <span className="font-medium">
-                {approveTarget?.first_name} {approveTarget?.last_name}
-              </span>{" "}
-              before approving their access.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-2 py-2">
-            <label className="text-sm font-medium text-[#0D1B2A]">Role</label>
-            <Select
-              value={selectedRole}
-              onValueChange={(v) => setSelectedRole(v as AdminRole)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.entries(roleLabels) as [AdminRole, string][]).map(
-                  ([id, label]) => (
-                    <SelectItem key={id} value={id}>
-                      {label}
-                    </SelectItem>
-                  )
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setApproveTarget(null)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleApprove}
-              disabled={
-                loadingKey ===
-                loadingId(approveTarget?.id ?? "", "approve")
-              }
-            >
-              {loadingKey ===
-              loadingId(approveTarget?.id ?? "", "approve")
-                ? "Approving…"
-                : "Approve"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ApproveAdminDialog
+        user={approveTarget}
+        isSubmitting={approveLoading}
+        onConfirm={handleApprove}
+        onClose={() => setApproveTarget(null)}
+      />
     </div>
   )
 }

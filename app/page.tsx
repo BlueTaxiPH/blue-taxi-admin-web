@@ -1,9 +1,15 @@
-import LoginPageSection from "@/containers/login-page"
+import { LandingPage } from "@/containers/landing"
+import { fetchActiveCityNamesForLanding } from "@/lib/supabase/queries"
 
-export default function Home() {
-  return (
-    <div className="relative min-h-screen">
-      <LoginPageSection />
-    </div>
-  )
+export const revalidate = 3600 // 1 hour ISR — city list changes rarely
+
+export default async function Home() {
+  let cities: string[] = []
+  try {
+    cities = await fetchActiveCityNamesForLanding()
+  } catch (err) {
+    console.error("[Landing] fetchActiveCityNamesForLanding failed:", err)
+  }
+
+  return <LandingPage cities={cities} />
 }
